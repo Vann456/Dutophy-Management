@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Minimal custom CSS for things Tailwind arbitrary values shouldn't handle per prompt constraints */
+.glass-top-edge {
+    background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0) 100%);
+}
+
+@media print {
+  body {
+    background: #fff;
+    color: #000;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  aside.no-print {
+    display: none !important;
+  }
+
+  button,
+  a,
+  .no-print-button {
+    display: none !important;
+  }
+
+  table {
+    border-collapse: collapse;
+  }
+
+  th,
+  td {
+    border: 1px solid #ccc !important;
+  }
+}
