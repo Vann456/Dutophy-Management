@@ -38,14 +38,13 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'kas', user }) => {
   // Debug: log full user object to inspect structure
   console.log('SettingsModal - user:', user, 'isOpen:', isOpen);
   
-  // Master admin check: identified strictly by username === 'admin'
   // Try multiple possible locations for username/role
   const currentUsername = user?.username || user?.user?.username || '';
   // Role check: case-insensitive exact match
   const currentUserRole = String(user?.role || user?.user?.role || '').toLowerCase().trim();
   
-  // Super Tier: master admin OR authorized roles (ketua/wakil)
-  const isSuperTier = currentUsername === 'admin' || currentUserRole === 'ketua' || currentUserRole === 'wakil';
+  // Super Tier: master admin (username='dutophy@gmail.com') OR authorized roles (ketua/wakil)
+  const isSuperTier = currentUsername === 'dutophy@gmail.com' || currentUserRole === 'ketua' || currentUserRole === 'wakil';
   
   console.log('SettingsModal - currentUsername:', currentUsername, 'currentUserRole:', currentUserRole, 'isSuperTier:', isSuperTier);
   
@@ -835,45 +834,45 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'kas', user }) => {
                       <tr><td colSpan="5" className="py-sm px-md text-center text-on-surface-variant">Memuat data...</td></tr>
                     ) : adminUsers.length ? (
                       adminUsers.map((u) => {
-                        const isAdminUser = u.username === 'admin';
-                        return (
-                        <tr key={u.id} className={`hover:bg-surface-container-high transition-colors ${isAdminUser ? 'opacity-60' : ''}`}>
-                          <td className="py-sm px-md font-body-md text-sm text-on-surface font-semibold">{u.name}</td>
-                          <td className="py-sm px-md font-body-md text-sm text-on-surface-variant">{u.email || u.username}</td>
-                          <td className="py-sm px-md">
-                            <span className={`inline-block px-sm py-xs rounded text-xs font-medium border ${getRoleBadgeStyle(u.role)}`}>
-                              {isAdminUser ? '🔒 Admin Sistem' : u.role}
-                            </span>
-                          </td>
-                          <td className="py-sm px-md">
-                            <span className={`inline-flex items-center gap-xs px-sm py-xs rounded-full text-xs font-medium ${
-                              u.status === 'active'
-                                ? 'bg-green-900/30 text-green-400 border border-green-500/30'
-                                : 'bg-gray-800/30 text-gray-400 border border-gray-500/30'
-                            }`}>
-                              <span className={`w-1.5 h-1.5 rounded-full ${u.status === 'active' ? 'bg-green-400' : 'bg-gray-400'}`}></span>
-                              {u.status === 'active' ? 'Aktif' : 'Alumni'}
-                            </span>
-                          </td>
-                          <td className="py-sm px-md">
-                            <div className="flex items-center gap-sm flex-wrap">
-                              {/* Role selector - locked for admin user */}
-                              {isAdminUser ? (
-                                <span className="px-sm py-xs rounded bg-surface-container border border-outline-variant text-xs text-on-surface-variant italic">
-                                  Tidak dapat diubah
-                                </span>
-                              ) : (
-                                <>
-                                  <select
-                                    value={u.role}
-                                    onChange={(e) => handleRoleChange(u.id, e.target.value)}
-                                    className="px-sm py-xs rounded bg-surface-container border border-outline-variant text-xs text-on-surface"
-                                    title="Ubah role"
-                                  >
-                                    {ROLE_OPTIONS.map(role => (
-                                      <option key={role} value={role}>{role}</option>
-                                    ))}
-                                  </select>
+              const isAdminUser = u.username === 'dutophy@gmail.com';
+              return (
+              <tr key={u.id} className={`hover:bg-surface-container-high transition-colors ${isAdminUser ? 'opacity-60' : ''}`}>
+                <td className="py-sm px-md font-body-md text-sm text-on-surface font-semibold">{u.name}</td>
+                <td className="py-sm px-md font-body-md text-sm text-on-surface-variant">{u.email || u.username}</td>
+                <td className="py-sm px-md">
+                  <span className={`inline-block px-sm py-xs rounded text-xs font-medium border ${getRoleBadgeStyle(u.role)}`}>
+                    {isAdminUser ? '🔒 Admin Sistem' : u.role}
+                  </span>
+                </td>
+                <td className="py-sm px-md">
+                  <span className={`inline-flex items-center gap-xs px-sm py-xs rounded-full text-xs font-medium ${
+                    u.status === 'active'
+                      ? 'bg-green-900/30 text-green-400 border border-green-500/30'
+                      : 'bg-gray-800/30 text-gray-400 border border-gray-500/30'
+                  }`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${u.status === 'active' ? 'bg-green-400' : 'bg-gray-400'}`}></span>
+                    {u.status === 'active' ? 'Aktif' : 'Alumni'}
+                  </span>
+                </td>
+                <td className="py-sm px-md">
+                  <div className="flex items-center gap-sm flex-wrap">
+                    {/* Role selector - locked for admin user */}
+                    {isAdminUser ? (
+                      <span className="px-sm py-xs rounded bg-surface-container border border-outline-variant text-xs text-on-surface-variant italic">
+                        Tidak dapat diubah
+                      </span>
+                    ) : (
+                      <>
+                        <select
+                          value={u.role}
+                          onChange={(e) => handleRoleChange(u.id, e.target.value)}
+                          className="px-sm py-xs rounded bg-surface-container border border-outline-variant text-xs text-on-surface"
+                          title="Ubah role"
+                        >
+                          {ROLE_OPTIONS.map(role => (
+                            <option key={role} value={role}>{role}</option>
+                          ))}
+                        </select>
 
                                   {/* Reset Password */}
                                   <button

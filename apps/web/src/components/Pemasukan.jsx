@@ -447,8 +447,8 @@ export default function Pemasukan({ onOpenAddTransaction }) {
             <h3 className="font-label-md text-label-md font-bold text-primary uppercase">Riwayat 1 Minggu Terakhir</h3>
           </div>
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {recentIncome.length ? recentIncome.map((tx, index) => (
-              <div key={index} className="flex items-center justify-between pb-3 border-b border-surface-variant last:border-0">
+            {recentIncome.length ? recentIncome.map((tx) => (
+              <div key={tx.id} className="flex items-center justify-between pb-3 border-b border-surface-variant last:border-0">
                 <div className="flex items-center gap-3 flex-1">
                   <div className="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-primary">
                     <span className="material-symbols-outlined text-xl">person</span>
@@ -537,13 +537,13 @@ export default function Pemasukan({ onOpenAddTransaction }) {
               style={{ minHeight: `${ROWS_PER_PAGE * 52}px` }}
             >
               {(showAll ? allFilteredRows : top10Rows).length ? (
-                (showAll ? allFilteredRows : top10Rows).map((row, index) => {
+                (showAll ? allFilteredRows : top10Rows).map((row) => {
                   const createdAt = row?.createdAt ? new Date(row.createdAt) : null
                   const formattedDate = createdAt && !Number.isNaN(createdAt.getTime())
                     ? createdAt.toLocaleDateString('id-ID')
                     : '—'
                   return (
-                    <tr key={index} className="border-b border-outline-variant hover:bg-surface-container transition-colors last:border-b-0">
+                    <tr key={row.id} className="border-b border-outline-variant hover:bg-surface-container transition-colors last:border-b-0">
                       <td className="p-4 text-secondary">{formattedDate}</td>
                       <td className="p-4">
                         <span className="bg-blue-900/40 text-blue-300 px-2 py-1 rounded text-xs font-semibold">Pemasukan</span>

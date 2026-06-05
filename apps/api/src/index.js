@@ -50,13 +50,13 @@ const ensureDemoAdmin = async () => {
     const existingUsers = await db.select().from(users).limit(1);
     if (existingUsers.length === 0) {
       await db.insert(users).values({
-        username: 'admin',
-        password: hashPassword('admin123'),
-        role: 'Bendahara',
-        name: 'Admin Bendahara',
-        email: 'admin@dutophy.local',
+        username: 'dutophy@gmail.com',
+        password: hashPassword('sinemadubes.anakhebat'),
+        role: 'ketua',
+        name: 'Admin Dutophy',
+        email: 'dutophy@gmail.com',
       });
-      console.log('Demo admin user created: admin / admin123');
+      console.log('Demo admin user created: dutophy@gmail.com / sinemadubes.anakhebat');
     }
   } catch (err) {
     console.error('Demo admin seed failed:', err);
@@ -350,7 +350,7 @@ app.patch('/api/transactions/:id', async (c) => {
 
   // RBAC: Only admin, ketua and wakil can approve/reject (change status)
   const currentUser = await getUserFromToken(c.req.header('authorization'));
-  const canApprove = currentUser?.username === 'admin' || ['ketua', 'wakil'].includes(currentUser?.role);
+  const canApprove = currentUser?.username === 'dutophy@gmail.com' || ['ketua', 'wakil'].includes(currentUser?.role);
   if (body.status && !canApprove) {
     return c.json({ error: 'Hanya Admin, Ketua, dan Wakil yang dapat menyetujui atau menolak transaksi.' }, 403);
   }
@@ -813,9 +813,9 @@ app.get('/api/audit-logs', async (c) => {
   }
 });
 
-// Master admin check: identified strictly by username === 'admin'
+// Master admin check: identified strictly by username === 'dutophy@gmail.com'
 const isMasterAdmin = (user) => {
-  return user?.username?.toLowerCase?.() === 'admin';
+  return user?.username?.toLowerCase?.() === 'dutophy@gmail.com';
 };
 
 // Unified ALL-POWERFUL role check: master admin OR ketua/wakil 
@@ -823,7 +823,7 @@ const hasFullAccess = (user) => {
   if (!user) return false;
   const username = user?.username?.toLowerCase?.() || '';
   const role = (user?.role || '').toLowerCase().trim();
-  return username === 'admin' || role === 'ketua' || role === 'wakil';
+  return username === 'dutophy@gmail.com' || role === 'ketua' || role === 'wakil';
 };
 
 const hasCashConfigAccess = (user) => {
@@ -831,7 +831,7 @@ const hasCashConfigAccess = (user) => {
   if (user.status === 'alumni') return false;
   const username = user?.username?.toLowerCase?.() || '';
   const role = (user?.role || '').toLowerCase().trim();
-  return username === 'admin' || ['ketua', 'wakil', 'sekretaris', 'bendahara'].includes(role);
+  return username === 'dutophy@gmail.com' || ['ketua', 'wakil', 'sekretaris', 'bendahara'].includes(role);
 };
 
 // ─── Admin User Management API ────────────────────────────────────────────

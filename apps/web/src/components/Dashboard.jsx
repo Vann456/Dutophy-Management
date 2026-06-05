@@ -259,7 +259,7 @@ export default function Dashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {recentTransactions.length ? recentTransactions.map((tx, index) => {
+                    {recentTransactions.length ? recentTransactions.map((tx) => {
                       const createdAt = tx?.createdAt ? new Date(tx.createdAt) : null
                       const formattedDate = createdAt && !Number.isNaN(createdAt.getTime())
                         ? createdAt.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
@@ -275,7 +275,7 @@ export default function Dashboard() {
                           ? 'bg-error-container text-error'
                           : 'bg-surface-variant text-on-surface-variant'
                       return (
-                        <tr key={index} className={`border-b border-surface-variant hover:bg-surface transition-colors ${index === recentTransactions.length - 1 ? 'border-b-0' : ''}`}>
+                        <tr key={tx.id} className={`border-b border-surface-variant hover:bg-surface transition-colors`}>
                           <td className="py-sm px-md font-label-md text-label-md text-on-surface">{formattedDate}</td>
                           <td className="py-sm px-md font-label-md text-label-md text-on-surface font-semibold">{tx.description || '—'}</td>
                           <td className="py-sm px-md font-label-md text-label-md text-on-surface-variant">{tx.type || '—'}</td>

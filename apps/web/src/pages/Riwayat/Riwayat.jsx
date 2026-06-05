@@ -269,10 +269,10 @@ export default function Riwayat() {
               </tr>
             </thead>
             <tbody className="font-body-md text-[14px] text-on-surface divide-y divide-outline-variant/50" style={{ minHeight: `${ROWS_PER_PAGE * 52}px` }}>
-              {paginatedRows.length ? paginatedRows.map((row, index) => {
+              {paginatedRows.length ? paginatedRows.map((row) => {
                 const isIncome = row.type === 'Pemasukan'
                 return (
-                  <tr key={index} className="hover:bg-surface-container-highest transition-colors duration-150">
+                  <tr key={row.id} className="hover:bg-surface-container-highest transition-colors duration-150">
                     <td className="p-sm md:p-md whitespace-nowrap text-on-surface-variant">{row.date}</td>
                     <td className="p-sm md:p-md font-medium">{row.description}</td>
                     <td className="p-sm md:p-md whitespace-nowrap">

@@ -481,13 +481,13 @@ export default function Pengeluaran({ onOpenAddTransaction }) {
               style={{ minHeight: `${ROWS_PER_PAGE * 52}px` }}
             >
               {(showAll ? allFilteredRows : top10Rows).length ? (
-                (showAll ? allFilteredRows : top10Rows).map((tx, index) => {
+                (showAll ? allFilteredRows : top10Rows).map((tx) => {
                   const createdAt = tx?.createdAt ? new Date(tx.createdAt) : null
                   const formattedDate = createdAt && !Number.isNaN(createdAt.getTime())
                     ? createdAt.toLocaleDateString('id-ID')
                     : '—'
                   return (
-                    <tr key={index} className="hover:bg-surface-container-low transition-colors group cursor-pointer">
+                    <tr key={tx.id} className="hover:bg-surface-container-low transition-colors group cursor-pointer">
                       <td className="py-sm px-md text-secondary">{formattedDate}</td>
                       <td className="py-sm px-md">
                         <span className="inline-flex items-center gap-xs bg-error-container/30 text-error px-2 py-1 rounded text-xs font-semibold">
