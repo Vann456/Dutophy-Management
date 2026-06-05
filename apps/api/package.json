@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "node src/index.js",
+    "start": "node start.mjs",
     "db:push": "npx drizzle-kit push --config=drizzle.config.ts",
     "db:studio": "npx drizzle-kit studio --config=drizzle.config.ts"
   },
