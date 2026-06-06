@@ -1,0 +1,26 @@
+{
+  "name": "dutophy-monorepo",
+  "private": true,
+  "packageManager": "npm@10.0.0",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev --parallel",
+    "dev:web": "turbo run dev --filter=@dcms/web",
+    "dev:api": "turbo run dev --filter=@dcms/api",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "db:push": "npx drizzle-kit push --config=apps/api/drizzle.config.ts",
+    "db:studio": "npx drizzle-kit studio --config=apps/api/drizzle.config.ts"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.31.10",
+    "drizzle-orm": "^0.45.2",
+    "pg": "^8.21.0",
+    "turbo": "^2.9.14"
+  },
+  "dependencies": {
+    "@google/genai": "^2.7.0"
+  }
+}
