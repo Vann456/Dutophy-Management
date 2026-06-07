@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAnggota } from '../../lib/AnggotaContext';
 import { createTransaction } from '../../api';
+import ModalFooter from '../../components/layout/ModalFooter';
 
 // ─── KONSTANTA ───────────────────────────────────────────────────────────────
 
@@ -253,19 +254,12 @@ const CreateInvoiceModal = ({ isOpen, onClose, onCreated }) => {
 
         {/* Footer — hanya tampil saat form belum disubmit */}
         {!waMessage && (
-          <div className="p-md border-t border-outline-variant flex justify-end gap-sm bg-surface-container-lowest flex-shrink-0">
-            <button
-              type="button"
-              onClick={handleClose}
-              className="px-md py-sm rounded-lg border border-outline-variant text-on-surface hover:bg-surface-container transition-colors"
-            >
-              Batal
-            </button>
+          <ModalFooter>
             <button
               type="submit"
               form="invoice-form"
               disabled={loading || !isFormValid}
-              className={`px-md py-sm rounded-lg font-bold flex items-center gap-sm transition-all duration-200 ${
+              className={`h-11 w-full md:w-auto px-md rounded-lg font-bold flex items-center justify-center gap-sm transition-all duration-200 ${
                 loading || !isFormValid
                   ? 'bg-slate-600 text-slate-400 opacity-50 cursor-not-allowed'
                   : 'bg-primary text-on-primary hover:opacity-90 shadow-lg shadow-primary/20'
@@ -274,7 +268,14 @@ const CreateInvoiceModal = ({ isOpen, onClose, onCreated }) => {
               <span className="material-symbols-outlined text-[18px]">send</span>
               Simpan & Buat Pesan WA
             </button>
-          </div>
+            <button
+              type="button"
+              onClick={handleClose}
+              className="h-11 w-full md:w-auto px-md rounded-lg border border-outline-variant text-on-surface hover:bg-surface-container transition-colors flex items-center justify-center"
+            >
+              Batal
+            </button>
+          </ModalFooter>
         )}
       </div>
     </div>

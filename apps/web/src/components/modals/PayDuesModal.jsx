@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { createTransaction, fetchConfig } from '../../api';
 import { MONTHS, YEARS, useAnggota } from '../../lib/AnggotaContext';
+import ModalFooter from '../../components/layout/ModalFooter';
 
 /**
  * PayDuesModal — Bayar Iuran dengan sinkronisasi Global State
@@ -227,18 +228,11 @@ const PayDuesModal = ({ isOpen, onClose, onPaid }) => {
         </div>
 
         {/* ── Footer ── */}
-        <div className="p-md border-t border-outline-variant flex justify-end gap-sm bg-surface-container-lowest">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-md py-sm rounded-lg border border-outline-variant text-on-surface hover:bg-surface-container transition-colors"
-          >
-            Batal
-          </button>
+        <ModalFooter>
           <button
             type="submit"
             disabled={loading || !isFormValid}
-            className={`px-md py-sm rounded-lg font-bold transition-all duration-200 ${
+            className={`h-11 w-full md:w-auto px-md rounded-lg font-bold transition-all duration-200 flex items-center justify-center ${
               loading || !isFormValid
                 ? 'bg-slate-600 text-slate-400 opacity-50 cursor-not-allowed'
                 : 'bg-primary text-on-primary hover:opacity-90 shadow-lg shadow-primary/20'
@@ -246,7 +240,14 @@ const PayDuesModal = ({ isOpen, onClose, onPaid }) => {
           >
             {loading ? 'Memproses...' : 'Konfirmasi Pembayaran'}
           </button>
-        </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="h-11 w-full md:w-auto px-md rounded-lg border border-outline-variant text-on-surface hover:bg-surface-container transition-colors flex items-center justify-center"
+          >
+            Batal
+          </button>
+        </ModalFooter>
       </form>
     </div>
   );

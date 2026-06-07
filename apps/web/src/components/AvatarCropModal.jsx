@@ -1,5 +1,6 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback } from 'react';
 import Cropper from 'react-easy-crop';
+import ModalFooter from './layout/ModalFooter';
 
 const createImage = (url) =>
   new Promise((resolve, reject) => {
@@ -120,19 +121,12 @@ const AvatarCropModal = ({ isOpen, imageSrc, onClose, onCropComplete }) => {
         </div>
 
         {/* Actions */}
-        <div className="p-md border-t border-outline-variant flex justify-end gap-sm bg-surface-container-lowest">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-md py-sm rounded-lg border border-outline-variant text-on-surface hover:bg-surface-container transition-colors"
-          >
-            Batal
-          </button>
+        <ModalFooter>
           <button
             type="button"
             onClick={handleSave}
             disabled={saving}
-            className={`px-md py-sm rounded-lg font-bold transition-all duration-200 ${
+            className={`h-11 w-full md:w-auto px-md rounded-lg font-bold transition-all duration-200 flex items-center justify-center ${
               saving
                 ? 'bg-slate-600 text-slate-400 opacity-50 cursor-not-allowed'
                 : 'bg-primary text-on-primary hover:opacity-90 shadow-lg shadow-primary/20'
@@ -140,7 +134,14 @@ const AvatarCropModal = ({ isOpen, imageSrc, onClose, onCropComplete }) => {
           >
             {saving ? 'Memproses...' : 'Simpan Foto'}
           </button>
-        </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="h-11 w-full md:w-auto px-md rounded-lg border border-outline-variant text-on-surface hover:bg-surface-container transition-colors flex items-center justify-center"
+          >
+            Batal
+          </button>
+        </ModalFooter>
       </div>
     </div>
   );

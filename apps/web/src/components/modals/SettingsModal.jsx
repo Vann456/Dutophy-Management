@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { fetchAuditLogs, fetchConfig, updateConfig, fetchCategories, createCategory, deleteCategory, fetchAdminUsers, createAdminUser, updateUserRole, resetUserPassword, updateUserStatus, changePassword } from '../../api';
+import ModalFooter from '../../components/layout/ModalFooter';
 
 const actionConfig = {
   LOGIN: { color: 'text-green-400 bg-green-900/30 border-green-500/50', icon: 'login' },
@@ -408,12 +409,12 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'kas', user }) => {
                 className="w-full mt-xs mb-sm px-sm py-sm rounded-lg bg-surface-container border border-outline-variant text-on-surface"
                 placeholder="Masukkan nominal kas wajib..."
               />
-              <div className="flex justify-end items-center gap-sm">
-                {configMsg && <span className="text-sm text-green-400">{configMsg}</span>}
+              <div className="flex flex-col-reverse md:flex-row md:justify-end items-stretch md:items-center gap-sm">
+                {configMsg && <span className="text-sm text-green-400 text-center md:text-left">{configMsg}</span>}
                 <button
                   onClick={saveSettings}
                   disabled={!isKasConfigValid}
-                  className={`px-md py-sm rounded-lg font-medium transition-all duration-200 ${
+                  className={`h-11 w-full md:w-auto px-md rounded-lg font-medium transition-all duration-200 ${
                     !isKasConfigValid
                       ? 'bg-slate-600 text-slate-400 opacity-50 cursor-not-allowed'
                       : 'bg-primary text-on-primary hover:bg-primary/90 shadow-lg shadow-primary/20'
@@ -544,17 +545,17 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'kas', user }) => {
                     className="w-full mt-xs px-sm py-sm rounded-lg bg-surface-container border border-outline-variant text-on-surface"
                   />
                 </div>
-                <div className="flex justify-between items-center">
+                <div className="flex flex-col-reverse md:flex-row md:justify-between items-stretch md:items-center gap-sm">
                   {canAccessAuditLog && (
                     <button
                       type="button"
                       onClick={() => setActiveTab('audit')}
-                      className="px-md py-sm bg-surface-container-high text-primary border border-primary/20 rounded-lg hover:bg-surface-container transition-colors"
+                      className="h-11 w-full md:w-auto px-md rounded-lg bg-surface-container-high text-primary border border-primary/20 hover:bg-surface-container transition-colors flex items-center justify-center"
                     >
                       Lihat Riwayat Audit
                     </button>
                   )}
-                  <button type="submit" className="px-md py-sm bg-primary text-on-primary rounded-lg">Ubah Password</button>
+                  <button type="submit" className="h-11 w-full md:w-auto px-md rounded-lg bg-primary text-on-primary flex items-center justify-center">Ubah Password</button>
                 </div>
               </form>
               {msg && <p className="mt-sm text-secondary">{msg}</p>}
@@ -810,21 +811,21 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'kas', user }) => {
                       </select>
                     </div>
                   </div>
-                  <div className="flex justify-end gap-sm pt-sm">
-                    <button
-                      type="button"
-                      onClick={() => setShowNewUserForm(false)}
-                      className="px-md py-sm rounded-lg border border-outline-variant text-on-surface hover:bg-surface-container transition-colors"
-                    >
-                      Batal
-                    </button>
+                  <ModalFooter className="!border-t-0 !p-0">
                     <button
                       type="submit"
-                      className="px-md py-sm bg-primary text-on-primary rounded-lg font-medium"
+                      className="h-11 w-full md:w-auto px-md rounded-lg bg-primary text-on-primary font-medium flex items-center justify-center"
                     >
                       Simpan Pengurus Baru
                     </button>
-                  </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowNewUserForm(false)}
+                      className="h-11 w-full md:w-auto px-md rounded-lg border border-outline-variant text-on-surface hover:bg-surface-container transition-colors flex items-center justify-center"
+                    >
+                      Batal
+                    </button>
+                  </ModalFooter>
                 </form>
               )}
 

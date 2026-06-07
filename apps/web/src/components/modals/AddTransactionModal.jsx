@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createTransaction, fetchCategories } from '../../api';
+import ModalFooter from '../../components/layout/ModalFooter';
 
 const AddTransactionModal = (props) => {
   const { isOpen, onClose, onTransactionCreated, initialType = 'Pemasukan' } = props;
@@ -226,18 +227,11 @@ const AddTransactionModal = (props) => {
           {error && <p className="text-error font-body-md text-body-md">{error}</p>}
 
           {/* Actions */}
-          <div className="flex items-center justify-end gap-sm pt-md border-t border-outline-variant/20">
-            <button
-              type="button"
-              onClick={handleClose}
-              className="px-md py-sm rounded-lg font-label-md text-label-md font-medium text-on-surface bg-surface border border-outline-variant/30 hover:bg-surface-variant/30 hover:text-on-surface transition-all duration-200"
-            >
-              Batal
-            </button>
+          <ModalFooter>
             <button
               type="submit"
               disabled={loading || !isFormValid}
-              className={`px-md py-sm rounded-lg font-label-md text-label-md font-medium transition-all duration-200 ${
+              className={`h-11 w-full md:w-auto px-md rounded-lg font-bold font-label-md text-label-md transition-all duration-200 flex items-center justify-center ${
                 loading || !isFormValid
                   ? 'bg-slate-600 text-slate-400 opacity-50 cursor-not-allowed'
                   : 'text-white bg-primary hover:bg-primary/90 hover:shadow-[0_0_15px_rgba(0,35,102,0.5)]'
@@ -245,7 +239,14 @@ const AddTransactionModal = (props) => {
             >
               {loading ? 'Menyimpan...' : 'Simpan Transaksi'}
             </button>
-          </div>
+            <button
+              type="button"
+              onClick={handleClose}
+              className="h-11 w-full md:w-auto px-md rounded-lg border border-outline-variant text-on-surface hover:bg-surface-container transition-colors font-label-md text-label-md flex items-center justify-center"
+            >
+              Batal
+            </button>
+          </ModalFooter>
         </form>
       </div>
     </div>

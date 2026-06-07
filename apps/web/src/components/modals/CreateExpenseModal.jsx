@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createTransaction, fetchCategories } from '../../api';
+import ModalFooter from '../../components/layout/ModalFooter';
 
 const CreateExpenseModal = ({ isOpen, onClose, onCreated }) => {
   const [form, setForm] = useState({ title: '', amount: '', date: new Date().toISOString().split('T')[0], category: '', note: '' });
@@ -84,12 +85,11 @@ const CreateExpenseModal = ({ isOpen, onClose, onCreated }) => {
             <textarea value={form.note} onChange={(e)=>setForm({...form,note:e.target.value})} className="w-full mt-xs px-sm py-sm rounded-lg bg-surface-container border border-outline-variant text-on-surface" />
           </div>
         </div>
-        <div className="p-md border-t flex justify-end gap-sm bg-surface-container-lowest">
-          <button type="button" onClick={onClose} className="px-md py-sm rounded-lg border border-outline-variant text-on-surface">Batal</button>
+        <ModalFooter>
           <button
             type="submit"
             disabled={loading || !isFormValid}
-            className={`px-md py-sm rounded-lg font-bold transition-all duration-200 ${
+            className={`h-11 w-full md:w-auto px-md rounded-lg font-bold transition-all duration-200 flex items-center justify-center ${
               loading || !isFormValid
                 ? 'bg-slate-600 text-slate-400 opacity-50 cursor-not-allowed'
                 : 'bg-primary text-on-primary hover:opacity-90 shadow-lg shadow-primary/20'
@@ -97,7 +97,8 @@ const CreateExpenseModal = ({ isOpen, onClose, onCreated }) => {
           >
             {loading ? 'Menyimpan...' : 'Simpan Pengeluaran'}
           </button>
-        </div>
+          <button type="button" onClick={onClose} className="h-11 w-full md:w-auto px-md rounded-lg border border-outline-variant text-on-surface hover:bg-surface-container transition-colors flex items-center justify-center">Batal</button>
+        </ModalFooter>
       </form>
     </div>
   );
