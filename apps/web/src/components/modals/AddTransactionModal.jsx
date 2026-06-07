@@ -35,6 +35,8 @@ const AddTransactionModal = (props) => {
 
   if (!isOpen) return null;
 
+  const isFormValid = formData.amount && formData.category;
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.amount || !formData.category) {
@@ -234,8 +236,12 @@ const AddTransactionModal = (props) => {
             </button>
             <button
               type="submit"
-              disabled={loading}
-              className="px-md py-sm rounded-lg font-label-md text-label-md font-medium text-white bg-primary-container hover:bg-primary-container/90 hover:shadow-[0_0_15px_rgba(0,35,102,0.5)] disabled:opacity-50 transition-all duration-200"
+              disabled={loading || !isFormValid}
+              className={`px-md py-sm rounded-lg font-label-md text-label-md font-medium transition-all duration-200 ${
+                loading || !isFormValid
+                  ? 'bg-slate-600 text-slate-400 opacity-50 cursor-not-allowed'
+                  : 'text-white bg-primary hover:bg-primary/90 hover:shadow-[0_0_15px_rgba(0,35,102,0.5)]'
+              }`}
             >
               {loading ? 'Menyimpan...' : 'Simpan Transaksi'}
             </button>

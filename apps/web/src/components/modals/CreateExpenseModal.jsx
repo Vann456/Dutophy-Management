@@ -26,6 +26,8 @@ const CreateExpenseModal = ({ isOpen, onClose, onCreated }) => {
 
   if (!isOpen) return null;
 
+  const isFormValid = form.title && form.amount && form.category;
+
   const handleSave = async (e) => {
     e.preventDefault();
     if (!form.title || !form.amount || !form.category) return alert('Isi semua field wajib');
@@ -84,7 +86,17 @@ const CreateExpenseModal = ({ isOpen, onClose, onCreated }) => {
         </div>
         <div className="p-md border-t flex justify-end gap-sm bg-surface-container-lowest">
           <button type="button" onClick={onClose} className="px-md py-sm rounded-lg border border-outline-variant text-on-surface">Batal</button>
-          <button type="submit" disabled={loading} className="px-md py-sm rounded-lg bg-primary-container text-on-primary-container">{loading?'Menyimpan...':'Simpan Pengeluaran'}</button>
+          <button
+            type="submit"
+            disabled={loading || !isFormValid}
+            className={`px-md py-sm rounded-lg font-bold transition-all duration-200 ${
+              loading || !isFormValid
+                ? 'bg-slate-600 text-slate-400 opacity-50 cursor-not-allowed'
+                : 'bg-primary text-on-primary hover:opacity-90 shadow-lg shadow-primary/20'
+            }`}
+          >
+            {loading ? 'Menyimpan...' : 'Simpan Pengeluaran'}
+          </button>
         </div>
       </form>
     </div>

@@ -56,6 +56,7 @@ const PayDuesModal = ({ isOpen, onClose, onPaid }) => {
 
   const selectedMember  = members.find(m => String(m.id) === String(selectedMemberId)) ?? null;
   const totalAmount     = weeksCount * weeklyFee;
+  const isFormValid     = selectedMember && weeklyFee > 0;
 
   // Preview 4 kotak status kas setelah submit
   const currentWeeks = selectedMember
@@ -236,8 +237,12 @@ const PayDuesModal = ({ isOpen, onClose, onPaid }) => {
           </button>
           <button
             type="submit"
-            disabled={loading || !selectedMember}
-            className="px-md py-sm rounded-lg bg-primary-container text-on-primary-container font-bold disabled:opacity-50 hover:opacity-90 transition-opacity"
+            disabled={loading || !isFormValid}
+            className={`px-md py-sm rounded-lg font-bold transition-all duration-200 ${
+              loading || !isFormValid
+                ? 'bg-slate-600 text-slate-400 opacity-50 cursor-not-allowed'
+                : 'bg-primary text-on-primary hover:opacity-90 shadow-lg shadow-primary/20'
+            }`}
           >
             {loading ? 'Memproses...' : 'Konfirmasi Pembayaran'}
           </button>

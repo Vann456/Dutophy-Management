@@ -49,6 +49,7 @@ const CreateInvoiceModal = ({ isOpen, onClose, onCreated }) => {
   if (!isOpen) return null;
 
   const selectedMember = members.find(m => String(m.id) === String(selectedMemberId)) ?? null;
+  const isFormValid = selectedMember && jenisTagihan && nominal;
 
   const handleReset = () => {
     setSelectedMemberId('');
@@ -263,8 +264,12 @@ const CreateInvoiceModal = ({ isOpen, onClose, onCreated }) => {
             <button
               type="submit"
               form="invoice-form"
-              disabled={loading}
-              className="px-md py-sm rounded-lg bg-primary-container text-on-primary-container font-bold disabled:opacity-50 hover:opacity-90 transition-opacity flex items-center gap-sm"
+              disabled={loading || !isFormValid}
+              className={`px-md py-sm rounded-lg font-bold flex items-center gap-sm transition-all duration-200 ${
+                loading || !isFormValid
+                  ? 'bg-slate-600 text-slate-400 opacity-50 cursor-not-allowed'
+                  : 'bg-primary text-on-primary hover:opacity-90 shadow-lg shadow-primary/20'
+              }`}
             >
               <span className="material-symbols-outlined text-[18px]">send</span>
               Simpan & Buat Pesan WA

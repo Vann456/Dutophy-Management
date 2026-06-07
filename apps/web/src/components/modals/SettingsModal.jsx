@@ -53,6 +53,7 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'kas', user }) => {
   
   // Check if user data is still loading (user is null/undefined but modal is open)
   const userLoading = !user && !currentUsername && isOpen;
+  const isKasConfigValid = Number(weeklyFee) > 0;
   const [weeklyFee, setWeeklyFee] = useState(10000);
   const [configMsg, setConfigMsg] = useState('');
 
@@ -409,7 +410,17 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'kas', user }) => {
               />
               <div className="flex justify-end items-center gap-sm">
                 {configMsg && <span className="text-sm text-green-400">{configMsg}</span>}
-                <button onClick={saveSettings} className="px-md py-sm bg-primary text-on-primary rounded-lg font-medium hover:bg-primary/90 transition-colors">Simpan</button>
+                <button
+                  onClick={saveSettings}
+                  disabled={!isKasConfigValid}
+                  className={`px-md py-sm rounded-lg font-medium transition-all duration-200 ${
+                    !isKasConfigValid
+                      ? 'bg-slate-600 text-slate-400 opacity-50 cursor-not-allowed'
+                      : 'bg-primary text-on-primary hover:bg-primary/90 shadow-lg shadow-primary/20'
+                  }`}
+                >
+                  Simpan
+                </button>
               </div>
             </div>
 
