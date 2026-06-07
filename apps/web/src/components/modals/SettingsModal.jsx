@@ -53,8 +53,8 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'kas', user }) => {
   
   // Check if user data is still loading (user is null/undefined but modal is open)
   const userLoading = !user && !currentUsername && isOpen;
-  const isKasConfigValid = Number(weeklyFee) > 0;
   const [weeklyFee, setWeeklyFee] = useState(10000);
+  const isKasConfigValid = Number(weeklyFee) > 0;
   const [configMsg, setConfigMsg] = useState('');
 
   // Category state
