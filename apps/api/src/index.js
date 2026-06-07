@@ -2,7 +2,7 @@ import 'dotenv/config';
 import crypto from 'node:crypto';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import http from 'node:http';
+import { serve } from '@hono/node-server';
 import { eq, desc, asc, and, gte, lte, like } from 'drizzle-orm';
 import { db } from './db.js';
 import { users, transactions, members, attendance, cashRecords, approvals, auditLogs, config, categories } from './schema.js';
@@ -1207,61 +1207,10 @@ app.delete('/api/categories/:id', async (c) => {
 
 const port = Number(process.env.PORT || 3001);
 
-const readRequestBody = (req) => new Promise((resolve, reject) => {
-  const chunks = [];
-  req.on('data', (chunk) => chunks.push(chunk));
-  req.on('end', () => resolve(Buffer.concat(chunks)));
-  req.on('error', reject);
+console.log(`Starting API server on port ${port}...`);
+serve({
+  fetch: app.fetch,
+  port,
+}, (info) => {
+  console.log(`API listening on http://localhost:${info.port}`);
 });
-
-const server = http.createServer(async (req, res) => {
-  try {
-    const host = req.headers.host || `localhost:${port}`;
-    const url = `http://${host}${req.url}`;
-    const requestInit = {
-      method: req.method,
-      headers: req.headers,
-    };
-
-    if (req.method !== 'GET' && req.method !== 'HEAD') {
-      const bodyBuffer = await readRequestBody(req);
-      requestInit.body = bodyBuffer;
-    }
-
-    const request = new Request(url, requestInit);
-    const response = await app.fetch(request);
-    res.writeHead(response.status, Object.fromEntries(response.headers));
-    const buffer = Buffer.from(await response.arrayBuffer());
-    res.end(buffer);
-  } catch (err) {
-    res.statusCode = 500;
-    res.end(String(err));
-  }
-});
-
-const attemptedPorts = new Set();
-
-const startServer = (listenPort) => {
-  if (attemptedPorts.has(listenPort)) {
-    console.error(`Already attempted port ${listenPort}, aborting server start.`);
-    return;
-  }
-  attemptedPorts.add(listenPort);
-  server.listen(listenPort, () => console.log('API listening on', listenPort));
-};
-
-server.on('error', (err) => {
-  if (err.code === 'EADDRINUSE') {
-    const fallbackPort = port + 1;
-    if (!attemptedPorts.has(fallbackPort)) {
-      console.warn(`Port ${port} is in use, trying ${fallbackPort} instead.`);
-      startServer(fallbackPort);
-      return;
-    }
-    console.error(`Both ${port} and ${fallbackPort} are in use; cannot start API server.`);
-    return;
-  }
-  console.error(err);
-});
-
-startServer(port);
