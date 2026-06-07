@@ -10,10 +10,11 @@
     "db:studio": "npx drizzle-kit studio --config=drizzle.config.ts"
   },
   "dependencies": {
-    "dotenv": "^17.4.2",
-    "hono": "^4.0.0",
     "@hono/node-server": "^1.19.14",
+    "@vercel/blob": "^2.4.0",
+    "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
+    "hono": "^4.0.0",
     "pg": "^8.21.0"
   }
 }

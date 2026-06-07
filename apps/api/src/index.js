@@ -1028,19 +1028,36 @@ app.patch('/api/admin/users/:id/status', async (c) => {
 
 // ─── Vercel Blob Upload API ──────────────────────────────────────────────
 app.post('/api/upload', async (c) => {
-  const body = await c.req.parseBody();
-  const file = body.file;
-  if (!file) {
-    return c.json({ error: 'File is required' }, 400);
-  }
   try {
-    const buffer = Buffer.isBuffer(file) ? file : await file.arrayBuffer();
+    const formData = await c.req.parseBody();
+    const file = formData['file'];
+    
+    if (!file) {
+      return c.json({ error: 'File is required' }, 400);
+    }
+
+    // Convert File/Blob to Buffer
+    let buffer;
+    if (Buffer.isBuffer(file)) {
+      buffer = file;
+    } else if (typeof file === 'object' && file.arrayBuffer) {
+      const ab = await file.arrayBuffer();
+      buffer = Buffer.from(ab);
+    } else if (typeof file === 'string') {
+      buffer = Buffer.from(file, 'binary');
+    } else {
+      return c.json({ error: 'Unsupported file format' }, 400);
+    }
+
     const filename = `avatars/${Date.now()}-${crypto.randomBytes(4).toString('hex')}.jpg`;
     const url = await uploadToBlob(filename, buffer);
     return c.json({ success: true, url });
   } catch (err) {
-    console.error('Upload error:', err);
-    return c.json({ error: err.message || 'Upload failed' }, 500);
+    console.error('❌ Upload error:', err);
+    return c.json({ 
+      success: false, 
+      error: err.message || 'Upload failed. Check server logs for details.' 
+    }, 500);
   }
 });
 
