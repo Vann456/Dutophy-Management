@@ -90,12 +90,6 @@ const Header = ({ title = 'Overview Keuangan', user, onLogout, onOpenProfile }) 
               )}
             </div>
           )}
-
-          {onLogout && (
-            <button onClick={onLogout} className="hidden md:inline-flex items-center justify-center px-3 py-2 rounded-lg border border-outline-variant text-label-sm font-medium text-primary hover:bg-surface-container transition-colors">
-              Logout
-            </button>
-          )}
         </div>
       </div>
     </header>
