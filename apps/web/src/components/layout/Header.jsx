@@ -3,7 +3,7 @@ import NotificationDropdown from './NotificationDropdown';
 
 const FALLBACK_AVATAR = 'https://images.unsplash.com/photo-1527980965255-d3b416303d12?auto=format&fit=crop&w=256&q=80';
 
-const Header = ({ title = 'Overview Keuangan', user, onLogout, onOpenProfile }) => {
+const Header = ({ title = 'Overview Keuangan', user, onLogout, onOpenProfile, onToggleSidebar }) => {
   const [wib, setWib] = useState(new Date());
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const menuRef = useRef(null);
@@ -35,7 +35,11 @@ const Header = ({ title = 'Overview Keuangan', user, onLogout, onOpenProfile }) 
   return (
     <header className="bg-surface border-b border-outline-variant flex justify-between items-center h-16 px-md sticky top-0 z-30 w-full shadow-sm">
       <div className="flex items-center">
-        <button className="md:hidden mr-sm p-sm rounded-full text-on-surface-variant hover:bg-surface-container-high transition-all">
+        <button
+          onClick={onToggleSidebar}
+          className="md:hidden mr-sm p-sm rounded-full text-on-surface-variant hover:bg-surface-container-high transition-all"
+          type="button"
+        >
           <span className="material-symbols-outlined">menu</span>
         </button>
         <h2 className="font-headline-md text-headline-md font-bold text-primary md:hidden">Dutophy</h2>
