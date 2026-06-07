@@ -7,6 +7,7 @@ export const users = pgTable('users', {
   role: text('role').notNull().default('Anggota'), // 'ketua', 'wakil', 'bendahara', 'sekretaris', 'guest', 'Anggota', 'alumni'
   name: text('name').notNull(),
   email: text('email'),
+  avatarUrl: text('avatar_url'), // profile picture URL from Vercel Blob
   status: text('status').default('active'), // 'active' or 'alumni'
   createdAt: timestamp('created_at').defaultNow(),
 });

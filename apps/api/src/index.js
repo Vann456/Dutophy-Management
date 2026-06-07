@@ -7,6 +7,7 @@ import { eq, desc, asc, and, gte, lte, like } from 'drizzle-orm';
 import { db } from './db.js';
 import { users, transactions, members, attendance, cashRecords, approvals, auditLogs, config, categories } from './schema.js';
 import { createAuditLog, extractClientInfo } from './auditLog.js';
+import { uploadToBlob } from './upload.js';
 
 const app = new Hono();
 
@@ -140,6 +141,7 @@ app.post('/api/auth/login', async (c) => {
       role: user.role,
       name: user.name,
       email: user.email || '',
+      avatarUrl: user.avatarUrl || '',
     },
   });
 });
@@ -194,7 +196,32 @@ app.get('/api/auth/me', async (c) => {
     role: user.role,
     name: user.name,
     email: user.email || '',
+    avatarUrl: user.avatarUrl || '',
   } });
+});
+
+app.patch('/api/auth/avatar', async (c) => {
+  const user = await getUserFromToken(c.req.header('authorization'));
+  if (!user) {
+    return c.json({ error: 'Unauthorized' }, 401);
+  }
+  const body = await c.req.json();
+  const { avatarUrl } = body;
+  if (!avatarUrl) {
+    return c.json({ error: 'avatarUrl is required' }, 400);
+  }
+  await db.update(users).set({ avatarUrl }).where(eq(users.id, user.id));
+  const { ipAddress, userAgent } = extractClientInfo(c);
+  await createAuditLog({
+    userId: user.id,
+    username: user.username,
+    action: 'SETTINGS_CHANGE',
+    targetType: 'USER',
+    targetId: user.id,
+    description: `Updated profile avatar`,
+    ipAddress, userAgent,
+  });
+  return c.json({ success: true, avatarUrl });
 });
 
 app.patch('/api/auth/change-password', async (c) => {
@@ -847,6 +874,7 @@ app.get('/api/admin/users', async (c) => {
     email: users.email,
     role: users.role,
     status: users.status,
+    avatarUrl: users.avatarUrl,
     createdAt: users.createdAt,
   }).from(users).orderBy(users.name);
   return c.json({ success: true, data: rows });
@@ -996,6 +1024,24 @@ app.patch('/api/admin/users/:id/status', async (c) => {
   });
 
   return c.json({ success: true, data: updated[0] });
+});
+
+// ─── Vercel Blob Upload API ──────────────────────────────────────────────
+app.post('/api/upload', async (c) => {
+  const body = await c.req.parseBody();
+  const file = body.file;
+  if (!file) {
+    return c.json({ error: 'File is required' }, 400);
+  }
+  try {
+    const buffer = Buffer.isBuffer(file) ? file : await file.arrayBuffer();
+    const filename = `avatars/${Date.now()}-${crypto.randomBytes(4).toString('hex')}.jpg`;
+    const url = await uploadToBlob(filename, buffer);
+    return c.json({ success: true, url });
+  } catch (err) {
+    console.error('Upload error:', err);
+    return c.json({ error: err.message || 'Upload failed' }, 500);
+  }
 });
 
 // ─── Config API ────────────────────────────────────────────────────────────

@@ -1,15 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Layout from './components/layout/Layout';
 import Login from './components/Login';
 import Pemasukan from './components/Pemasukan';
 import Pengeluaran from './components/Pengeluaran';
 import AddTransactionModal from './components/modals/AddTransactionModal';
+import AvatarCropModal from './components/AvatarCropModal';
 import Anggota from './pages/Anggota/Anggota';
 import Dashboard from './pages/Dashboard/Dashboard';
 import Persetujuan from './pages/Persetujuan/Persetujuan';
 import Riwayat from './pages/Riwayat/Riwayat';
 import Statistik from './pages/Statistik/Statistik';
-import { fetchAuthMe, login, register } from './api';
+import { fetchAuthMe, login, register, updateAvatar } from './api';
 import { AnggotaProvider } from './lib/AnggotaContext';
 
 const pageTitles = {
@@ -36,6 +37,61 @@ function App() {
   const [activeModalType, setActiveModalType] = useState('Pemasukan');
   const [activeModalCallback, setActiveModalCallback] = useState(null);
   const [dashboardRefreshKey, setDashboardRefreshKey] = useState(0);
+
+  // Avatar crop flow state
+  const [avatarCropImage, setAvatarCropImage] = useState(null);
+
+  const handleOpenProfile = useCallback(() => {
+    // Create a hidden file input
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        setAvatarCropImage(ev.target.result);
+      };
+      reader.readAsDataURL(file);
+    };
+    input.click();
+  }, []);
+
+  const handleCropComplete = useCallback(async (croppedFile) => {
+    setAvatarCropImage(null);
+    try {
+      // Upload cropped image to Vercel Blob via our API
+      const formData = new FormData();
+      formData.append('file', croppedFile, 'avatar.jpg');
+      
+      const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3001').trim() || 'http://localhost:3001';
+      const token = localStorage.getItem('token');
+      
+      const uploadHeaders = {};
+      if (token) uploadHeaders.Authorization = `Bearer ${token}`;
+      
+      const uploadRes = await fetch(`${API_BASE}/api/upload`, {
+        method: 'POST',
+        headers: uploadHeaders,
+        body: formData,
+      });
+      const uploadData = await uploadRes.json();
+      if (!uploadData.success) throw new Error(uploadData.error || 'Upload failed');
+      
+      // Save avatar URL to user record
+      await updateAvatar(uploadData.url);
+      
+      // Immediately update local state
+      setUser(prev => ({ ...prev, avatarUrl: uploadData.url }));
+      
+      // Notify other components
+      window.dispatchEvent(new CustomEvent('avatar:updated', { detail: { avatarUrl: uploadData.url } }));
+    } catch (err) {
+      console.error('Avatar upload error:', err);
+      alert('Gagal mengunggah foto profil: ' + err.message);
+    }
+  }, []);
 
   useEffect(() => {
     const token = localStorage.getItem('token') || localStorage.getItem('dutophy_token');
@@ -162,6 +218,12 @@ function App() {
         }}
         initialType={activeModalType}
       />
+      <AvatarCropModal
+        isOpen={!!avatarCropImage}
+        imageSrc={avatarCropImage}
+        onClose={() => setAvatarCropImage(null)}
+        onCropComplete={handleCropComplete}
+      />
       <Layout
         activePage={activePage}
         onNavigate={setActivePage}
@@ -169,6 +231,7 @@ function App() {
         user={user}
         onLogout={handleLogout}
         onOpenAddTransaction={handleOpenAddTransaction}
+        onOpenProfile={handleOpenProfile}
       >
         {pages[activePage]}
       </Layout>

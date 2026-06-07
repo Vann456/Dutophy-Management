@@ -70,6 +70,13 @@ export async function fetchAuthMe() {
   return apiFetch('/api/auth/me');
 }
 
+export async function updateAvatar(avatarUrl) {
+  return apiFetch('/api/auth/avatar', {
+    method: 'PATCH',
+    body: JSON.stringify({ avatarUrl }),
+  });
+}
+
 export async function changePassword(currentPassword, newPassword) {
   return apiFetch('/api/auth/change-password', {
     method: 'PATCH',

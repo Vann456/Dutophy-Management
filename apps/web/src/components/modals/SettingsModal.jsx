@@ -848,7 +848,16 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'kas', user }) => {
               const isAdminUser = u.username === 'dutophy@gmail.com';
               return (
               <tr key={u.id} className={`hover:bg-surface-container-high transition-colors ${isAdminUser ? 'opacity-60' : ''}`}>
-                <td className="py-sm px-md font-body-md text-sm text-on-surface font-semibold">{u.name}</td>
+                <td className="py-sm px-md">
+                  <div className="flex items-center gap-sm">
+                    <img
+                      src={u.avatarUrl || 'https://images.unsplash.com/photo-1527980965255-d3b416303d12?auto=format&fit=crop&w=256&q=80'}
+                      alt={u.name}
+                      className="w-8 h-8 rounded-full object-cover bg-surface-container-high border border-outline-variant flex-shrink-0"
+                    />
+                    <span className="font-body-md text-sm text-on-surface font-semibold">{u.name}</span>
+                  </div>
+                </td>
                 <td className="py-sm px-md font-body-md text-sm text-on-surface-variant">{u.email || u.username}</td>
                 <td className="py-sm px-md">
                   <span className={`inline-block px-sm py-xs rounded text-xs font-medium border ${getRoleBadgeStyle(u.role)}`}>

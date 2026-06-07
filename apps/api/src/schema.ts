@@ -1,26 +1,27 @@
-import { pgTable, serial, text, integer, timestamp, boolean } from 'drizzle-orm/pg-core';
+import { pgTable, serial, text, integer, timestamp } from 'drizzle-orm/pg-core';
 
 export const users = pgTable('users', {
   id: serial('id').primaryKey(),
   username: text('username').notNull(),
   password: text('password').notNull(),
-  role: text('role').notNull().default('Anggota'), // 'ketua', 'wakil', 'bendahara', 'sekretaris', 'guest', 'Anggota', 'alumni'
+  role: text('role').notNull().default('Anggota'),
   name: text('name').notNull(),
   email: text('email'),
-  status: text('status').default('active'), // 'active' or 'alumni'
+  avatarUrl: text('avatar_url'),
+  status: text('status').default('active'),
   createdAt: timestamp('created_at').defaultNow(),
 });
 
 export const transactions = pgTable('transactions', {
   id: serial('id').primaryKey(),
-  description: text('description'), // nullable untuk kompatibilitas data existing
+  description: text('description'),
   amount: integer('amount'),
-  type: text('type'), // 'income' or 'expense'
-  category: text('category'), // e.g., 'Sewa Alat', 'Konsumsi', 'Kas Mingguan', 'Iuran Kas'
-  attachmentUrl: text('attachment_url'), // nullable - path/name for receipt/documentation
-  memberId: integer('member_id'), // optional foreign key to members table for payment transactions
-  status: text('status').default('Pending'), // 'Pending', 'Approved', 'Rejected'
-  rejectionReason: text('rejection_reason'), // reason for rejection
+  type: text('type'),
+  category: text('category'),
+  status: text('status').default('Pending'),
+  rejectionReason: text('rejection_reason'),
+  attachmentUrl: text('attachment_url'),
+  memberId: integer('member_id'),
   createdAt: timestamp('created_at').defaultNow(),
 });
 
@@ -65,19 +66,18 @@ export const approvals = pgTable('approvals', {
 export const auditLogs = pgTable('audit_logs', {
   id: serial('id').primaryKey(),
   userId: integer('user_id'),
-  username: text('username'),
-  action: text('action').notNull(), // 'CREATE_TRANSACTION', 'EDIT_TRANSACTION', 'DELETE_TRANSACTION', 'APPROVE_EXPENSE', 'LOGIN', 'SETTINGS_CHANGE', 'ROLE_CHANGE'
-  targetType: text('target_type'), // 'TRANSACTION', 'APPROVAL', 'SETTINGS', 'USER', etc
+  username: text('username').notNull(),
+  action: text('action').notNull(),
+  targetType: text('target_type'),
   targetId: integer('target_id'),
-  beforeValue: text('before_value'), // JSON stringified
-  afterValue: text('after_value'), // JSON stringified
+  beforeValue: text('before_value'),
+  afterValue: text('after_value'),
   description: text('description'),
   ipAddress: text('ip_address'),
   userAgent: text('user_agent'),
-  createdAt: timestamp('created_at').defaultNow(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
-// ─── Config ────────────────────────────────────────────────────────────────
 export const config = pgTable('config', {
   id: serial('id').primaryKey(),
   key: text('key').notNull().unique(),
@@ -86,10 +86,9 @@ export const config = pgTable('config', {
   updatedAt: timestamp('updated_at').defaultNow(),
 });
 
-// ─── Categories ────────────────────────────────────────────────────────────
 export const categories = pgTable('categories', {
   id: serial('id').primaryKey(),
   name: text('name').notNull(),
-  type: text('type').notNull(), // 'Pemasukan' or 'Pengeluaran'
+  type: text('type').notNull(),
   createdAt: timestamp('created_at').defaultNow(),
 });
