@@ -22,7 +22,6 @@
   },
   "dependencies": {
     "@google/genai": "^2.7.0",
-    "@vercel/blob": "^2.4.0",
     "react-easy-crop": "^5.5.7"
   }
 }

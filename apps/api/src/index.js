@@ -1027,27 +1027,57 @@ app.patch('/api/admin/users/:id/status', async (c) => {
 });
 
 // ─── Vercel Blob Upload API ──────────────────────────────────────────────
+// Diagnostic endpoint: check if upload service is properly configured
+app.get('/api/upload/status', (c) => {
+  const token = process.env.BLOB_READ_WRITE_TOKEN;
+  return c.json({
+    configured: !!token,
+    message: token
+      ? 'Vercel Blob token is configured'
+      : 'BLOB_READ_WRITE_TOKEN is NOT set — avatar uploads will fail. Add it in Render dashboard → Environment.',
+  });
+});
+
+// Upload endpoint: receives multipart FormData from frontend, uploads to Vercel Blob
 app.post('/api/upload', async (c) => {
+  console.log('POST /api/upload — content-type:', c.req.header('content-type'));
+  
+  // Pre-check: ensure token is configured before attempting upload
+  const token = process.env.BLOB_READ_WRITE_TOKEN;
+  if (!token) {
+    console.error('❌ BLOB_READ_WRITE_TOKEN is not set');
+    return c.json({ 
+      success: false, 
+      error: 'Vercel Blob token is not configured on the server. Please add BLOB_READ_WRITE_TOKEN to the Render environment variables.' 
+    }, 500);
+  }
+
   try {
     const formData = await c.req.parseBody();
+    console.log('parseBody keys:', Object.keys(formData));
+    
     const file = formData['file'];
     
     if (!file) {
-      return c.json({ error: 'File is required' }, 400);
+      console.error('No file field in formData. Received keys:', Object.keys(formData));
+      return c.json({ success: false, error: 'File is required. Expected multipart/form-data with "file" field.' }, 400);
     }
 
-    // Convert File/Blob to Buffer
+    // Convert File/Blob/Buffer to Buffer
     let buffer;
     if (Buffer.isBuffer(file)) {
       buffer = file;
-    } else if (typeof file === 'object' && file.arrayBuffer) {
+    } else if (typeof file === 'object' && typeof file.arrayBuffer === 'function') {
       const ab = await file.arrayBuffer();
       buffer = Buffer.from(ab);
     } else if (typeof file === 'string') {
       buffer = Buffer.from(file, 'binary');
     } else {
-      return c.json({ error: 'Unsupported file format' }, 400);
+      console.error('Unsupported file type:', typeof file, file?.constructor?.name);
+      return c.json({ success: false, error: 'Unsupported file format' }, 400);
     }
+
+    console.log('File buffer size:', buffer.length, 'bytes');
 
     const filename = `avatars/${Date.now()}-${crypto.randomBytes(4).toString('hex')}.jpg`;
     const url = await uploadToBlob(filename, buffer);
