@@ -34,9 +34,9 @@ const NotificationDropdown = () => {
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="relative p-sm rounded-full bg-surface-container-high transition-all hover:bg-surface-container focus:outline-none focus:ring-2 focus:ring-primary"
+        className="relative w-10 h-10 flex items-center justify-center rounded-full bg-surface-container-high transition-all hover:bg-surface-container focus:outline-none focus:ring-2 focus:ring-primary"
       >
-        <span className="material-symbols-outlined text-on-surface">notifications</span>
+        <span className="material-symbols-outlined text-on-surface text-[20px]">notifications</span>
         {nunggakCount > 0 && (
           <span className="absolute -top-2 -right-2 inline-flex items-center justify-center min-w-[20px] h-5 px-1 rounded-full bg-error text-[11px] text-white font-bold shadow-lg shadow-error/30">
             {nunggakCount}

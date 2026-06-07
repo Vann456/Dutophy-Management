@@ -46,7 +46,7 @@ const Header = ({ title = 'Overview Keuangan', user, onLogout, onOpenProfile, on
         <h2 className="font-headline-md text-headline-md font-bold text-on-surface hidden md:block">{title}</h2>
       </div>
       
-      <div className="flex items-center space-x-md">
+      <div className="flex items-center justify-end gap-4">
         <div className="text-right hidden md:block">
           <div className="font-body-md text-label-md text-on-surface-variant">{dateString}</div>
           <div className="font-headline-sm text-headline-sm font-semibold">{timeString} WIB</div>
