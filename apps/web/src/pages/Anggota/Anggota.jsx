@@ -25,7 +25,7 @@ const KAS_STYLE = {
   '-': {
     // Soft Slate Gray — no meeting held
     btn:   'bg-[#1a1e22] text-[#8899aa] border-[#4a5568] hover:bg-[#1e2328]',
-    label: 'None',
+    label: '-',
   },
 };
 
@@ -33,32 +33,32 @@ const HADIR_STYLE = {
   '✓': {
     // Emerald Muted — sinkron dengan COLOR.hadir (#5b8fa8 → tapi hadir pakai emerald)
     btn:   'bg-[#0d2318] text-[#6dbf9a] border-[#4e8c6e] hover:bg-[#112b1e]',
-    label: '✓ Hadir',
+    label: '✓',
     short: '✓',
   },
   'A': {
     // Maroon Pastel — sinkron dengan COLOR.alpha (#8c4e5a)
     btn:   'bg-[#2b1018] text-[#c47f8a] border-[#8c4e5a] hover:bg-[#351420]',
-    label: 'A Alpha',
+    label: 'A',
     short: 'A',
   },
   'S': {
     // Soft Khaki Amber — sinkron dengan COLOR.sakit (#8a7a4a)
     btn:   'bg-[#26200d] text-[#c4a85a] border-[#8a7a4a] hover:bg-[#2e2710]',
-    label: 'S Sakit',
+    label: 'S',
     short: 'S',
   },
   'I': {
     // Deep Slate Blue — sinkron dengan COLOR.izin (#4a6e8a)
     btn:   'bg-[#0d1a26] text-[#7aaac4] border-[#4a6e8a] hover:bg-[#10202e]',
-    label: 'I Izin',
+    label: 'I',
     short: 'I',
   },
   '-': {
     // Soft Slate Gray — netral
     btn:   'bg-[#1a1e22] text-[#8899aa] border-[#4a5568] hover:bg-[#1e2328]',
-    label: 'None',
-    short: 'None',
+    label: '-',
+    short: '-',
   },
 };
 
@@ -69,7 +69,7 @@ const calcKasStatus = (weeks) => {
   const activeWeeks = weeks.filter(w => w !== '-' && w !== '–');
   const unpaid = activeWeeks.filter(w => w === '✗').length;
   if (activeWeeks.length === 0) {
-    return { badge: 'bg-[#1a1e22] text-[#8899aa] border border-[#4a5568]', text: 'None' };
+    return { badge: 'bg-[#1a1e22] text-[#8899aa] border border-[#4a5568]', text: '-' };
   }
   return unpaid === 0
     ? { badge: 'bg-[#0d2318] text-[#6dbf9a] border border-[#4e8c6e]', text: '✓ Lunas' }
@@ -153,7 +153,7 @@ function HadirDropdown({ value, onChange, disabled = false }) {
           if (disabled) return;
           setOpen(o => !o);
         }}
-        className={`h-9 rounded-lg border-2 font-bold text-base flex items-center justify-center gap-1 px-3 min-w-[4rem] transition-colors ${disabled ? 'cursor-default opacity-90 pointer-events-none' : 'cursor-pointer'} ${style.btn}`}
+        className={`h-7 rounded-lg border-2 font-bold text-sm flex items-center justify-center gap-0.5 px-2 min-w-[2.5rem] transition-colors ${disabled ? 'cursor-default opacity-90 pointer-events-none' : 'cursor-pointer'} ${style.btn}`}
         title={disabled ? 'Read-only' : undefined}
       >
         <span>{style.short}</span>
@@ -162,13 +162,13 @@ function HadirDropdown({ value, onChange, disabled = false }) {
 
       {/* Popover menu — setiap item punya warna TETAP miliknya sendiri */}
       {open && !disabled && (
-        <div className="absolute z-50 top-full mt-1 left-0 rounded-lg shadow-2xl overflow-hidden min-w-[120px] border border-gray-700">
+        <div className="absolute z-50 top-full mt-1 left-0 rounded-lg shadow-2xl overflow-hidden min-w-[60px] border border-gray-700">
           {Object.entries(HADIR_STYLE).map(([opt, s]) => (
             <button
               key={opt}
               type="button"
               onClick={() => { onChange(opt); setOpen(false); }}
-              className={`w-full px-3 py-2 text-sm font-bold text-left transition-colors ${s.btn} ${opt === value ? 'ring-2 ring-inset ring-current' : ''}`}
+              className={`w-full px-2 py-1.5 text-xs font-bold text-left transition-colors ${s.btn} ${opt === value ? 'ring-2 ring-inset ring-current' : ''}`}
             >
               {s.label}
             </button>
