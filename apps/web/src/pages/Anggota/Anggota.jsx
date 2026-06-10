@@ -153,7 +153,7 @@ function HadirDropdown({ value, onChange, disabled = false }) {
           if (disabled) return;
           setOpen(o => !o);
         }}
-        className={`h-7 rounded-lg border-2 font-bold text-sm flex items-center justify-center gap-0.5 px-2 min-w-[2.5rem] transition-colors ${disabled ? 'cursor-default opacity-90 pointer-events-none' : 'cursor-pointer'} ${style.btn}`}
+        className={`h-9 rounded-lg border-2 font-bold text-base flex items-center justify-center gap-1 px-3 min-w-[3.5rem] transition-colors ${disabled ? 'cursor-default opacity-90 pointer-events-none' : 'cursor-pointer'} ${style.btn}`}
         title={disabled ? 'Read-only' : undefined}
       >
         <span>{style.short}</span>
@@ -162,13 +162,13 @@ function HadirDropdown({ value, onChange, disabled = false }) {
 
       {/* Popover menu — setiap item punya warna TETAP miliknya sendiri */}
       {open && !disabled && (
-        <div className="absolute z-50 top-full mt-1 left-0 rounded-lg shadow-2xl overflow-hidden min-w-[60px] border border-gray-700">
+        <div className="absolute z-50 top-full mt-1 left-0 rounded-lg shadow-2xl overflow-hidden min-w-[80px] border border-gray-700">
           {Object.entries(HADIR_STYLE).map(([opt, s]) => (
             <button
               key={opt}
               type="button"
               onClick={() => { onChange(opt); setOpen(false); }}
-              className={`w-full px-2 py-1.5 text-xs font-bold text-left transition-colors ${s.btn} ${opt === value ? 'ring-2 ring-inset ring-current' : ''}`}
+              className={`w-full px-3 py-2 text-sm font-bold text-left transition-colors ${s.btn} ${opt === value ? 'ring-2 ring-inset ring-current' : ''}`}
             >
               {s.label}
             </button>
