@@ -1,4 +1,7 @@
 {
   "buildCommand": "npx turbo run build --filter=@dcms/web",
-  "outputDirectory": "apps/web/dist"
+  "outputDirectory": "apps/web/dist",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
 }
