@@ -1054,16 +1054,8 @@ app.get('/api/upload/status', (c) => {
 // Upload endpoint: receives multipart FormData from frontend, uploads to Vercel Blob
 app.post('/api/upload', async (c) => {
   console.log('POST /api/upload — content-type:', c.req.header('content-type'));
-  
-  // Pre-check: ensure token is configured before attempting upload
-  const token = process.env.BLOB_READ_WRITE_TOKEN;
-  if (!token) {
-    console.error('❌ BLOB_READ_WRITE_TOKEN is not set');
-    return c.json({ 
-      success: false, 
-      error: 'Vercel Blob token is not configured on the server. Please add BLOB_READ_WRITE_TOKEN to the Render environment variables.' 
-    }, 500);
-  }
+  console.log('AVAILABLE ENV KEYS:', Object.keys(process.env));
+  console.log('BLOB_READ_WRITE_TOKEN present:', !!process.env['BLOB_READ_WRITE_TOKEN']);
 
   try {
     const formData = await c.req.parseBody();
@@ -1097,6 +1089,7 @@ app.post('/api/upload', async (c) => {
     return c.json({ success: true, url });
   } catch (err) {
     console.error('❌ Upload error:', err);
+    console.error('   Full error object:', JSON.stringify(err, Object.getOwnPropertyNames(err)));
     return c.json({ 
       success: false, 
       error: err.message || 'Upload failed. Check server logs for details.' 
