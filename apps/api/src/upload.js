@@ -1,20 +1,17 @@
-import dotenv from 'dotenv';
 import { put } from '@vercel/blob';
 
-// Load .env but do NOT override existing environment variables (e.g., from Render)
-dotenv.config({ override: false });
-
 export async function uploadToBlob(filename, buffer) {
-  // Read token at runtime, not at import time
-  const token = process.env.BLOB_READ_WRITE_TOKEN;
+  // Read token using bracket notation to prevent any compile-time evaluation
+  const token = process.env['BLOB_READ_WRITE_TOKEN'];
 
-  console.log('🔧 [upload.js] BLOB_READ_WRITE_TOKEN detected:', token ? 'YES (length: ' + token.length + ')' : 'NO');
+  console.log('🔧 [upload.js] process.env.BLOB_READ_WRITE_TOKEN:', token ? `PRESENT (length: ${token.length})` : 'MISSING');
 
-  if (!token) {
-    console.error('❌ BLOB_READ_WRITE_TOKEN is not set in environment variables');
-    console.error('   Ensure it is set in Render Dashboard → Environment → BLOB_READ_WRITE_TOKEN');
+  if (!token || token.length === 0) {
+    console.error('❌ [upload.js] BLOB_READ_WRITE_TOKEN is missing or empty');
+    console.error('   Render env var check:');
+    console.error('     Keys available:', Object.keys(process.env).filter(k => k.includes('BLOB') || k.includes('TOKEN')).join(', ') || '(none matching)');
     throw new Error(
-      'Vercel Blob token is missing. Please set BLOB_READ_WRITE_TOKEN in environment variables.'
+      'Vercel Blob token is missing. Please set BLOB_READ_WRITE_TOKEN in Render environment variables.'
     );
   }
 
@@ -23,10 +20,10 @@ export async function uploadToBlob(filename, buffer) {
       access: 'public',
       token,
     });
-    console.log('✓ Image uploaded to Vercel Blob:', blob.url);
+    console.log('✓ [upload.js] Image uploaded to Vercel Blob:', blob.url);
     return blob.url;
   } catch (err) {
-    console.error('❌ Vercel Blob upload error:', err);
+    console.error('❌ [upload.js] Vercel Blob upload error:', err);
     throw new Error(`Failed to upload image: ${err.message}`);
   }
 }

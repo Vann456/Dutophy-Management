@@ -1,14 +1,18 @@
-import dotenv from 'dotenv';
 import crypto from 'node:crypto';
 
-// Load .env but do NOT override existing environment variables (e.g., from Render)
-dotenv.config({ override: false });
-
 // ─── Boot diagnostic: verify critical env vars are available ─────────────
+// NOTE: All env vars MUST be read via bracket notation process.env['KEY']
+// to prevent any compile-time evaluation by Node.js/bundlers.
+const BLOB_TOKEN = process.env['BLOB_READ_WRITE_TOKEN'];
+const DB_URL = process.env['DATABASE_URL'];
+const PORT_VAL = process.env['PORT'] || '3001 (default)';
 console.log('🚀 [Server Boot] Environment check:');
-console.log('   BLOB_READ_WRITE_TOKEN:', process.env.BLOB_READ_WRITE_TOKEN ? `SET (length: ${process.env.BLOB_READ_WRITE_TOKEN.length})` : '❌ NOT SET');
-console.log('   DATABASE_URL:', process.env.DATABASE_URL ? 'SET' : '❌ NOT SET');
-console.log('   PORT:', process.env.PORT || '3001 (default)');
+console.log('   BLOB_READ_WRITE_TOKEN:', BLOB_TOKEN ? `SET (length: ${BLOB_TOKEN.length})` : '❌ NOT SET');
+console.log('   DATABASE_URL:', DB_URL ? 'SET' : '❌ NOT SET');
+console.log('   PORT:', PORT_VAL);
+// Dump all env keys matching known patterns to aid debugging
+console.log('🔍 Env keys matching *BLOB*, *TOKEN*, *VERCEL*:', 
+  Object.keys(process.env).filter(k => /BLOB|TOKEN|VERCEL/i.test(k)).join(', ') || '(none found)');
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { serve } from '@hono/node-server';
