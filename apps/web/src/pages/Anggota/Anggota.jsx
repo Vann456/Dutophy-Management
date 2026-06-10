@@ -191,7 +191,7 @@ function LegendKas() {
         ✗ Nunggak
       </span>
       <span className="inline-flex items-center gap-xs px-3 py-1 rounded-lg text-sm font-bold bg-[#1a1e22] text-[#8899aa] border-2 border-[#4a5568]">
-        None
+        - None
       </span>
     </div>
   );
