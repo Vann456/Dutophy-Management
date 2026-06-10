@@ -61,7 +61,7 @@ function App() {
   const handleCropComplete = useCallback(async (croppedFile) => {
     setAvatarCropImage(null);
     try {
-      // Upload cropped image to Vercel Blob via our API
+      // ⚠️ CRITICAL: Only send FormData to our backend. NO @vercel/blob on client.
       const formData = new FormData();
       formData.append('file', croppedFile, 'avatar.jpg');
       
