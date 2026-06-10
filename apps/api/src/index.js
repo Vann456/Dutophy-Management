@@ -20,7 +20,7 @@ import { eq, desc, asc, and, gte, lte, like } from 'drizzle-orm';
 import { db } from './db.js';
 import { users, transactions, members, attendance, cashRecords, approvals, auditLogs, config, categories } from './schema.js';
 import { createAuditLog, extractClientInfo } from './auditLog.js';
-import { uploadToBlob } from './upload.js';
+import { uploadToVercelBlob } from './upload.js';
 
 const app = new Hono();
 
@@ -1042,7 +1042,7 @@ app.patch('/api/admin/users/:id/status', async (c) => {
 // ─── Vercel Blob Upload API ──────────────────────────────────────────────
 // Diagnostic endpoint: check if upload service is properly configured
 app.get('/api/upload/status', (c) => {
-  const token = process.env.BLOB_READ_WRITE_TOKEN;
+  const token = process.env['BLOB_READ_WRITE_TOKEN'];
   return c.json({
     configured: !!token,
     message: token
@@ -1085,7 +1085,7 @@ app.post('/api/upload', async (c) => {
     console.log('File buffer size:', buffer.length, 'bytes');
 
     const filename = `avatars/${Date.now()}-${crypto.randomBytes(4).toString('hex')}.jpg`;
-    const url = await uploadToBlob(filename, buffer);
+    const url = await uploadToVercelBlob(filename, buffer);
     return c.json({ success: true, url });
   } catch (err) {
     console.error('❌ Upload error:', err);
