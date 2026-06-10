@@ -1,5 +1,14 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
 import crypto from 'node:crypto';
+
+// Load .env but do NOT override existing environment variables (e.g., from Render)
+dotenv.config({ override: false });
+
+// ─── Boot diagnostic: verify critical env vars are available ─────────────
+console.log('🚀 [Server Boot] Environment check:');
+console.log('   BLOB_READ_WRITE_TOKEN:', process.env.BLOB_READ_WRITE_TOKEN ? `SET (length: ${process.env.BLOB_READ_WRITE_TOKEN.length})` : '❌ NOT SET');
+console.log('   DATABASE_URL:', process.env.DATABASE_URL ? 'SET' : '❌ NOT SET');
+console.log('   PORT:', process.env.PORT || '3001 (default)');
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { serve } from '@hono/node-server';
