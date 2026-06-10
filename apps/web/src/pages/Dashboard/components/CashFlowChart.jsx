@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 
 // ─── HELPERS ────────────────────────────────────────────────────────────────
 
@@ -26,12 +26,27 @@ const FILTER_OPTIONS = [
   { value: 'yearly', label: 'Tahunan' },
 ];
 
+// ─── HOOK ────────────────────────────────────────────────────────────────────
+
+function useMediaQuery(query) {
+  const [matches, setMatches] = useState(false);
+  useEffect(() => {
+    const mql = window.matchMedia(query);
+    setMatches(mql.matches);
+    const handler = (e) => setMatches(e.matches);
+    mql.addEventListener('change', handler);
+    return () => mql.removeEventListener('change', handler);
+  }, [query]);
+  return matches;
+}
+
 // ─── COMPONENT ───────────────────────────────────────────────────────────────
 
 const CashFlowChart = ({ transactions = [] }) => {
   const [filter, setFilter] = useState('6months');
   const txList = Array.isArray(transactions) ? transactions : [];
   const now = new Date();
+  const isMobile = useMediaQuery('(max-width: 639px)');
 
   // Tentukan slot berdasarkan filter
   const slots = useMemo(() => {
@@ -83,9 +98,9 @@ const CashFlowChart = ({ transactions = [] }) => {
         </select>
       </div>
 
-      <div className="flex-1 flex items-end justify-between h-56 mt-auto pb-sm relative border-b border-surface-variant">
+      <div className="flex-1 flex items-end h-56 mt-auto pb-sm relative border-b border-surface-variant overflow-x-auto">
         {/* Y-axis labels */}
-        <div className="absolute left-0 top-0 h-full flex flex-col justify-between text-label-md font-label-md text-on-surface-variant pb-sm pl-3">
+        <div className="sticky left-0 z-10 bg-surface-container h-full flex flex-col justify-between text-label-md font-label-md text-on-surface-variant pb-sm pl-3 pr-1">
           <span>100%</span>
           <span>75%</span>
           <span>50%</span>
@@ -94,11 +109,12 @@ const CashFlowChart = ({ transactions = [] }) => {
         </div>
 
         {/* Bars */}
-        <div className="w-full flex items-end justify-between gap-1 px-2 ml-8">
+        <div className={`flex items-end justify-between gap-1 px-2 ${slots.length > 6 ? 'min-w-[480px]' : ''}`}>
           {slots.map(slot => {
             const data = summary[slot.label] ?? { income: 0, expense: 0 };
             const incomePct  = Math.max(4, Math.round((data.income  / maxValue) * 100));
             const expensePct = Math.max(4, Math.round((data.expense / maxValue) * 100));
+            const label = isMobile && slots.length > 6 ? slot.label[0] : slot.label;
             return (
               <div key={slot.label} className="flex flex-col items-center gap-1 w-full">
                 <div className="flex items-end gap-1 h-40 w-full">
@@ -113,7 +129,7 @@ const CashFlowChart = ({ transactions = [] }) => {
                     title={`Pemasukan: Rp ${data.income.toLocaleString('id-ID')}`}
                   />
                 </div>
-                <span className="text-label-sm text-on-surface-variant text-center leading-tight">{slot.label}</span>
+                <span className="text-label-sm text-on-surface-variant text-center leading-tight">{label}</span>
               </div>
             );
           })}
