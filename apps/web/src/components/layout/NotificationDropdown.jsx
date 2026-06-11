@@ -45,7 +45,7 @@ const NotificationDropdown = () => {
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-96 rounded-2xl border border-outline-variant bg-surface-container-lowest shadow-2xl overflow-hidden z-40">
+        <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] md:w-96 rounded-2xl border border-outline-variant bg-surface-container-lowest shadow-2xl overflow-hidden z-40">
           {/* Header */}
           <div className="p-md border-b border-outline-variant bg-surface-container-low">
             <div className="flex items-center justify-between">
@@ -72,8 +72,8 @@ const NotificationDropdown = () => {
             ) : (
               <>
                 {/* Summary banner */}
-                <div className="px-md py-3 bg-red-950/30 border-b border-red-900/30">
-                  <p className="text-sm font-bold text-red-400">
+                <div className="px-3 md:px-md py-3 bg-red-950/30 border-b border-red-900/30">
+                  <p className="text-sm font-bold text-red-400 whitespace-normal break-words">
                     🚨 {nunggakCount} Anggota belum bayar kas bulan ini!
                   </p>
                 </div>
@@ -81,7 +81,7 @@ const NotificationDropdown = () => {
                 {/* Member list */}
                 <div className="divide-y divide-outline-variant/30">
                   {nunggakMembers.map((member) => (
-                    <div key={member.id} className="px-md py-3 hover:bg-surface-container transition-colors">
+                    <div key={member.id} className="px-3 md:px-md py-3 hover:bg-surface-container transition-colors">
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-3 min-w-0">
                           <div className="w-8 h-8 rounded-full bg-red-900/30 flex items-center justify-center shrink-0">
