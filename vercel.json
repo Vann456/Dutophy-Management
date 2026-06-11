@@ -3,5 +3,6 @@
   "outputDirectory": "apps/web/dist",
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
-  ]
+  ],
+  "cleanUrls": true
 }
