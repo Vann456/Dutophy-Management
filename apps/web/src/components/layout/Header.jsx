@@ -54,7 +54,7 @@ const Header = ({ title = 'Overview Keuangan', user, onLogout, onOpenProfile, on
         
         <NotificationDropdown />
         
-        <div className="flex items-center space-x-sm border-l border-outline-variant pl-md relative" ref={menuRef}>
+        <div className="flex items-center space-x-sm border-l border-outline-variant pl-md relative z-[60]" ref={menuRef}>
           <div className="text-right hidden md:block">
             <p className="font-label-md text-label-md text-on-surface font-semibold">{user?.name || 'User Profile'}</p>
             <p className="font-label-sm text-label-sm text-on-surface-variant">{user?.role || 'Bendahara'}</p>
@@ -73,7 +73,7 @@ const Header = ({ title = 'Overview Keuangan', user, onLogout, onOpenProfile, on
 
           {/* Dropdown Menu */}
           {showProfileMenu && (
-            <div className="absolute right-0 top-full mt-xs w-48 bg-surface-container border border-outline-variant rounded-lg shadow-xl overflow-hidden z-50">
+            <div className="absolute right-0 top-full mt-xs w-48 bg-surface-container border border-outline-variant rounded-lg shadow-xl overflow-hidden z-[60]">
               <button
                 type="button"
                 onClick={handleOpenProfile}
