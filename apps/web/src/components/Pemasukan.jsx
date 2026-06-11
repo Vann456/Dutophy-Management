@@ -409,7 +409,7 @@ export default function Pemasukan({ onOpenAddTransaction }) {
             </select>
           </div>
 
-          <div className="flex-1 min-h-[300px] relative" style={{ minWidth: 0 }}>
+          <div className="flex-1 min-h-[200px] md:min-h-[300px] relative" style={{ minWidth: 0 }}>
             <ResponsiveContainer width="100%" height={300} minWidth={0}>
               <LineChart data={chartData} margin={{ top: 10, right: 16, left: 8, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
@@ -525,11 +525,11 @@ export default function Pemasukan({ onOpenAddTransaction }) {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-surface-container-lowest border-b border-outline-variant">
-                <th className="p-4 font-label-md text-label-md text-primary uppercase">Tanggal</th>
-                <th className="p-4 font-label-md text-label-md text-primary uppercase">Kategori</th>
-                <th className="p-4 font-label-md text-label-md text-primary uppercase">Keterangan</th>
-                <th className="p-4 font-label-md text-label-md text-primary uppercase">Oleh</th>
-                <th className="p-4 font-label-md text-label-md text-primary uppercase text-right">Jumlah</th>
+                <th className="p-3 md:p-4 font-label-md text-label-md text-primary uppercase">Tanggal</th>
+                <th className="p-3 md:p-4 font-label-md text-label-md text-primary uppercase">Kategori</th>
+                <th className="p-3 md:p-4 font-label-md text-label-md text-primary uppercase">Keterangan</th>
+                <th className="p-3 md:p-4 font-label-md text-label-md text-primary uppercase">Oleh</th>
+                <th className="p-3 md:p-4 font-label-md text-label-md text-primary uppercase text-right">Jumlah</th>
               </tr>
             </thead>
             <tbody
@@ -544,13 +544,13 @@ export default function Pemasukan({ onOpenAddTransaction }) {
                     : '—'
                   return (
                     <tr key={row.id} className="border-b border-outline-variant hover:bg-surface-container transition-colors last:border-b-0">
-                      <td className="p-4 text-secondary">{formattedDate}</td>
-                      <td className="p-4">
+                      <td className="p-3 md:p-4 text-secondary">{formattedDate}</td>
+                      <td className="p-3 md:p-4">
                         <span className="bg-blue-900/40 text-blue-300 px-2 py-1 rounded text-xs font-semibold">Pemasukan</span>
                       </td>
-                      <td className="p-4">{row.description}</td>
-                      <td className="p-4">Admin</td>
-                      <td className="p-4 text-right font-semibold text-green-400">
+                      <td className="p-3 md:p-4">{row.description}</td>
+                      <td className="p-3 md:p-4">Admin</td>
+                      <td className="p-3 md:p-4 text-right font-semibold text-green-400">
                         Rp {(row.amount || 0).toLocaleString('id-ID')}
                       </td>
                     </tr>

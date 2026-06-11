@@ -193,7 +193,7 @@ export default function Riwayat() {
   return (
     <>
       <section className="bg-surface-container-lowest rounded-xl border border-outline-variant p-xs overflow-x-auto shadow-sm no-print">
-        <ul className="flex min-w-max gap-xs">
+        <ul className="flex gap-xs flex-wrap">
           {months.map((month) => {
             const isActive = month === selectedMonth
             return (

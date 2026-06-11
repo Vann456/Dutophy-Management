@@ -251,7 +251,7 @@ function MemberFormModal({ editTarget, onClose }) {
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <form
         onSubmit={handleSubmit}
-        className="bg-surface-container-low rounded-xl p-lg w-96 shadow-2xl border border-outline-variant"
+        className="bg-surface-container-low rounded-xl p-lg w-full max-w-md shadow-2xl border border-outline-variant"
       >
         <h2 className="font-headline-md text-headline-md font-bold text-on-surface mb-md">
           {editTarget ? 'Edit Anggota' : 'Tambah Anggota'}

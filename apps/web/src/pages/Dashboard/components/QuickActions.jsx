@@ -12,7 +12,7 @@ const QuickActions = ({ onTransactionCreated, onOpenAddTransaction, user }) => {
   const [openExpense, setOpenExpense] = useState(false);
 
   return (
-    <div className="bg-surface-container p-md rounded-xl border border-surface-variant flex flex-col">
+    <div className="bg-surface-container p-md rounded-xl border border-surface-variant flex flex-col h-auto md:h-[300px]">
       <div className="flex items-center justify-between mb-lg">
         <h3 className="font-headline-md text-headline-md font-bold text-on-surface">Aksi Cepat</h3>
       </div>

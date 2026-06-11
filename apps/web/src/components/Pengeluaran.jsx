@@ -362,7 +362,7 @@ export default function Pengeluaran({ onOpenAddTransaction }) {
             </select>
           </div>
 
-          <div className="h-[280px] w-full">
+          <div className="h-[200px] md:h-[280px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData} margin={{ top: 10, right: 16, left: 8, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
@@ -469,11 +469,11 @@ export default function Pengeluaran({ onOpenAddTransaction }) {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-surface-container-lowest border-b border-outline-variant">
-                <th className="py-sm px-md font-label-md text-label-md text-primary uppercase tracking-wider">Tanggal</th>
-                <th className="py-sm px-md font-label-md text-label-md text-primary uppercase tracking-wider">Kategori</th>
-                <th className="py-sm px-md font-label-md text-label-md text-primary uppercase tracking-wider">Deskripsi</th>
-                <th className="py-sm px-md font-label-md text-label-md text-primary uppercase tracking-wider">Oleh</th>
-                <th className="py-sm px-md font-label-md text-label-md text-primary uppercase tracking-wider text-right">Nominal</th>
+                <th className="py-sm px-3 md:px-md font-label-md text-label-md text-primary uppercase tracking-wider">Tanggal</th>
+                <th className="py-sm px-3 md:px-md font-label-md text-label-md text-primary uppercase tracking-wider">Kategori</th>
+                <th className="py-sm px-3 md:px-md font-label-md text-label-md text-primary uppercase tracking-wider">Deskripsi</th>
+                <th className="py-sm px-3 md:px-md font-label-md text-label-md text-primary uppercase tracking-wider">Oleh</th>
+                <th className="py-sm px-3 md:px-md font-label-md text-label-md text-primary uppercase tracking-wider text-right">Nominal</th>
               </tr>
             </thead>
             <tbody
@@ -488,16 +488,16 @@ export default function Pengeluaran({ onOpenAddTransaction }) {
                     : '—'
                   return (
                     <tr key={tx.id} className="hover:bg-surface-container-low transition-colors group cursor-pointer">
-                      <td className="py-sm px-md text-secondary">{formattedDate}</td>
-                      <td className="py-sm px-md">
+                      <td className="py-sm px-3 md:px-md text-secondary">{formattedDate}</td>
+                      <td className="py-sm px-3 md:px-md">
                         <span className="inline-flex items-center gap-xs bg-error-container/30 text-error px-2 py-1 rounded text-xs font-semibold">
                           <span className="material-symbols-outlined text-[16px]">payments</span>
                           Pengeluaran
                         </span>
                       </td>
-                      <td className="py-sm px-md font-medium group-hover:text-error transition-colors">{tx.description}</td>
-                      <td className="py-sm px-md">Admin</td>
-                      <td className="py-sm px-md text-right font-semibold text-error">
+                      <td className="py-sm px-3 md:px-md font-medium group-hover:text-error transition-colors">{tx.description}</td>
+                      <td className="py-sm px-3 md:px-md">Admin</td>
+                      <td className="py-sm px-3 md:px-md text-right font-semibold text-error">
                         Rp {(tx.amount || 0).toLocaleString('id-ID')}
                       </td>
                     </tr>
@@ -505,7 +505,7 @@ export default function Pengeluaran({ onOpenAddTransaction }) {
                 })
               ) : (
                 <tr>
-                  <td colSpan="5" className="py-sm px-md text-center">
+                  <td colSpan="5" className="py-sm px-3 md:px-md text-center">
                     <div className="mx-auto max-w-xl rounded-3xl border border-outline-variant bg-surface p-6">
                       <p className="font-headline-sm text-headline-sm font-semibold text-on-surface mb-2">
                         Belum ada rekaman transaksi kas saat ini.

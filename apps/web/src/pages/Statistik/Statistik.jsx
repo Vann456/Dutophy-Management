@@ -219,57 +219,59 @@ export default function Statistik() {
           </div>
 
           {txLoading ? (
-            <div className="h-64 flex items-center justify-center text-secondary">Memuat...</div>
+            <div className="h-48 md:h-64 flex items-center justify-center text-secondary">Memuat...</div>
           ) : (
-            <ResponsiveContainer width="100%" height={260}>
-              <AreaChart data={cashFlowData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="gradIncome" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%"  stopColor={COLOR.income}  stopOpacity={0.25} />
-                    <stop offset="95%" stopColor={COLOR.income}  stopOpacity={0.02} />
-                  </linearGradient>
-                  <linearGradient id="gradExpense" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%"  stopColor={COLOR.expense} stopOpacity={0.25} />
-                    <stop offset="95%" stopColor={COLOR.expense} stopOpacity={0.02} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                <XAxis
-                  dataKey="name"
-                  tick={{ fontSize: 11, fill: '#8899aa' }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <YAxis
-                  tickFormatter={fmtRupiah}
-                  tick={{ fontSize: 11, fill: '#8899aa' }}
-                  axisLine={false}
-                  tickLine={false}
-                  width={48}
-                />
-                <Tooltip content={<CashFlowTooltip />} />
-                <Area
-                  type="monotone"
-                  dataKey="income"
-                  name="Pemasukan"
-                  stroke={COLOR.income}
-                  strokeWidth={2}
-                  fill="url(#gradIncome)"
-                  dot={{ r: 3, fill: COLOR.income, strokeWidth: 0 }}
-                  activeDot={{ r: 5 }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="expense"
-                  name="Pengeluaran"
-                  stroke={COLOR.expense}
-                  strokeWidth={2}
-                  fill="url(#gradExpense)"
-                  dot={{ r: 3, fill: COLOR.expense, strokeWidth: 0 }}
-                  activeDot={{ r: 5 }}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+            <div className="h-[200px] md:h-[260px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={cashFlowData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="gradIncome" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%"  stopColor={COLOR.income}  stopOpacity={0.25} />
+                      <stop offset="95%" stopColor={COLOR.income}  stopOpacity={0.02} />
+                    </linearGradient>
+                    <linearGradient id="gradExpense" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%"  stopColor={COLOR.expense} stopOpacity={0.25} />
+                      <stop offset="95%" stopColor={COLOR.expense} stopOpacity={0.02} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                  <XAxis
+                    dataKey="name"
+                    tick={{ fontSize: 11, fill: '#8899aa' }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    tickFormatter={fmtRupiah}
+                    tick={{ fontSize: 11, fill: '#8899aa' }}
+                    axisLine={false}
+                    tickLine={false}
+                    width={48}
+                  />
+                  <Tooltip content={<CashFlowTooltip />} />
+                  <Area
+                    type="monotone"
+                    dataKey="income"
+                    name="Pemasukan"
+                    stroke={COLOR.income}
+                    strokeWidth={2}
+                    fill="url(#gradIncome)"
+                    dot={{ r: 3, fill: COLOR.income, strokeWidth: 0 }}
+                    activeDot={{ r: 5 }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="expense"
+                    name="Pengeluaran"
+                    stroke={COLOR.expense}
+                    strokeWidth={2}
+                    fill="url(#gradExpense)"
+                    dot={{ r: 3, fill: COLOR.expense, strokeWidth: 0 }}
+                    activeDot={{ r: 5 }}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
           )}
         </section>
 
@@ -282,8 +284,8 @@ export default function Statistik() {
             {MONTHS[statMonth]} {statYear} · {kasStats.total} anggota
           </p>
 
-          <div className="flex-1 flex items-center justify-center min-h-[180px]">
-            <ResponsiveContainer width="100%" height={180}>
+          <div className="flex-1 flex items-center justify-center min-h-[160px] md:min-h-[180px]">
+            <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={kasStats.pieData}
@@ -342,7 +344,8 @@ export default function Statistik() {
             </div>
           </div>
 
-          <ResponsiveContainer width="100%" height={220}>
+          <div className="h-[180px] md:h-[220px]">
+          <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={hadirStats.rows}
               margin={{ top: 8, right: 16, left: 0, bottom: 0 }}
@@ -383,6 +386,7 @@ export default function Statistik() {
               </Bar>
             </BarChart>
           </ResponsiveContainer>
+          </div>
 
           {/* Breakdown angka di bawah chart */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-sm mt-md">

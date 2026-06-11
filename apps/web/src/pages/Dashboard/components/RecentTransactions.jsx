@@ -32,12 +32,12 @@ const RecentTransactions = ({ transactions = [], loading, onRefresh }) => {
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="bg-surface-container-low border-b border-surface-variant">
-              <th className="py-sm px-md font-label-md text-label-md text-on-surface-variant">Tanggal</th>
-              <th className="py-sm px-md font-label-md text-label-md text-on-surface-variant">Deskripsi</th>
-              <th className="py-sm px-md font-label-md text-label-md text-on-surface-variant">Kategori</th>
-              <th className="py-sm px-md font-label-md text-label-md text-on-surface-variant text-right">Jumlah</th>
-              <th className="py-sm px-md font-label-md text-label-md text-on-surface-variant">Status</th>
+              <tr className="bg-surface-container-low border-b border-surface-variant">
+                <th className="py-2 px-3 md:py-sm md:px-md font-label-md text-label-md text-on-surface-variant">Tanggal</th>
+                <th className="py-2 px-3 md:py-sm md:px-md font-label-md text-label-md text-on-surface-variant">Deskripsi</th>
+                <th className="py-2 px-3 md:py-sm md:px-md font-label-md text-label-md text-on-surface-variant">Kategori</th>
+                <th className="py-2 px-3 md:py-sm md:px-md font-label-md text-label-md text-on-surface-variant text-right">Jumlah</th>
+                <th className="py-2 px-3 md:py-sm md:px-md font-label-md text-label-md text-on-surface-variant">Status</th>
             </tr>
           </thead>
           <tbody>
@@ -49,21 +49,21 @@ const RecentTransactions = ({ transactions = [], loading, onRefresh }) => {
                 const color = isPemasukan ? incomeColor : expenseColor;
                 return (
                   <tr key={tx.id} className="border-b border-surface-variant hover:bg-surface transition-colors">
-                    <td className="py-sm px-md font-label-md text-label-md text-on-surface">
+                    <td className="py-2 px-3 md:py-sm md:px-md font-label-md text-label-md text-on-surface">
                       {new Date(tx.createdAt).toLocaleDateString('id-ID')}
                     </td>
-                    <td className="py-sm px-md font-label-md text-label-md text-on-surface font-semibold">
+                    <td className="py-2 px-3 md:py-sm md:px-md font-label-md text-label-md text-on-surface font-semibold">
                       {tx.description}
                     </td>
                     {/* Kategori — warna dinamis */}
-                    <td className="py-sm px-md font-label-md text-label-md font-semibold" style={{ color }}>
+                    <td className="py-2 px-3 md:py-sm md:px-md font-label-md text-label-md font-semibold" style={{ color }}>
                       {tx.type}
                     </td>
                     {/* Jumlah — warna dinamis + prefix +/- */}
-                    <td className="py-sm px-md font-label-md text-label-md text-right font-bold" style={{ color }}>
+                    <td className="py-2 px-3 md:py-sm md:px-md font-label-md text-label-md text-right font-bold" style={{ color }}>
                       {isPemasukan ? '+' : '-'} Rp {Number(tx.amount || 0).toLocaleString('id-ID')}
                     </td>
-                    <td className="py-sm px-md">
+                    <td className="py-2 px-3 md:py-sm md:px-md">
                       <div className="flex flex-col gap-1">
 <span 
   className={`inline-block px-sm py-xs rounded text-xs font-medium border`}

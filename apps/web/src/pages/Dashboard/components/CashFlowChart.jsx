@@ -83,7 +83,7 @@ const CashFlowChart = ({ transactions = [] }) => {
         </select>
       </div>
 
-      <div className="flex-1 flex items-end justify-between h-56 mt-auto pb-sm relative border-b border-surface-variant">
+      <div className="flex-1 flex items-end justify-between h-40 md:h-56 mt-auto pb-sm relative border-b border-surface-variant">
         {/* Y-axis labels */}
         <div className="absolute left-0 top-0 h-full flex flex-col justify-between text-label-md font-label-md text-on-surface-variant pb-sm pl-3">
           <span>100%</span>
@@ -101,7 +101,7 @@ const CashFlowChart = ({ transactions = [] }) => {
             const expensePct = Math.max(4, Math.round((data.expense / maxValue) * 100));
             return (
               <div key={slot.label} className="flex flex-col items-center gap-1 w-full">
-                <div className="flex items-end gap-1 h-40 w-full">
+                <div className="flex items-end gap-1 h-28 md:h-40 w-full">
                   <div
                     className="w-full bg-surface-container-high rounded-t-sm transition-all duration-300"
                     style={{ height: `${expensePct}%` }}
