@@ -3,7 +3,7 @@ import NotificationDropdown from './NotificationDropdown';
 
 const FALLBACK_AVATAR = 'https://images.unsplash.com/photo-1527980965255-d3b416303d12?auto=format&fit=crop&w=256&q=80';
 
-const Header = ({ title = 'Overview Keuangan', user, onLogout, onOpenProfile, onToggleSidebar }) => {
+const Header = ({ title = 'Overview Keuangan', user, avatarCacheBuster, onLogout, onOpenProfile, onToggleSidebar }) => {
   const [wib, setWib] = useState(new Date());
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const menuRef = useRef(null);
@@ -67,7 +67,7 @@ const Header = ({ title = 'Overview Keuangan', user, onLogout, onOpenProfile, on
             <img 
               alt="User Profile" 
               className="w-full h-full object-cover" 
-              src={user?.avatarUrl || FALLBACK_AVATAR}
+              src={`${user?.avatarUrl || FALLBACK_AVATAR}?t=${avatarCacheBuster}`}
             />
           </button>
 

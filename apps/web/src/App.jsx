@@ -37,6 +37,7 @@ function App() {
   const [activeModalType, setActiveModalType] = useState('Pemasukan');
   const [activeModalCallback, setActiveModalCallback] = useState(null);
   const [dashboardRefreshKey, setDashboardRefreshKey] = useState(0);
+  const [avatarCacheBuster, setAvatarCacheBuster] = useState(Date.now());
 
   // Avatar crop flow state
   const [avatarCropImage, setAvatarCropImage] = useState(null);
@@ -82,8 +83,9 @@ function App() {
       // Save avatar URL to user record
       await updateAvatar(uploadData.url);
       
-      // Immediately update local state
+      // Immediately update local state with cache-buster
       setUser(prev => ({ ...prev, avatarUrl: uploadData.url }));
+      setAvatarCacheBuster(Date.now());
       
       // Notify other components
       window.dispatchEvent(new CustomEvent('avatar:updated', { detail: { avatarUrl: uploadData.url } }));
@@ -227,6 +229,7 @@ function App() {
         onNavigate={setActivePage}
         title={pageTitles[activePage]}
         user={user}
+        avatarCacheBuster={avatarCacheBuster}
         onLogout={handleLogout}
         onOpenAddTransaction={handleOpenAddTransaction}
         onOpenProfile={handleOpenProfile}

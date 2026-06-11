@@ -3,7 +3,7 @@ import Sidebar from './Sidebar';
 import Header from './Header';
 import MobileDrawer from './MobileDrawer';
 
-const Layout = ({ activePage, onNavigate, title, children, user, onLogout, onOpenAddTransaction, onOpenProfile }) => {
+const Layout = ({ activePage, onNavigate, title, children, user, avatarCacheBuster, onLogout, onOpenAddTransaction, onOpenProfile }) => {
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
 
   return (
@@ -20,6 +20,7 @@ const Layout = ({ activePage, onNavigate, title, children, user, onLogout, onOpe
         <Header
           title={title}
           user={user}
+          avatarCacheBuster={avatarCacheBuster}
           onLogout={onLogout}
           onOpenProfile={onOpenProfile}
           onToggleSidebar={() => setMobileDrawerOpen(prev => !prev)}

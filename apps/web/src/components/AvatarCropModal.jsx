@@ -44,9 +44,30 @@ const getCroppedImg = async (imageSrc, pixelCrop, rotation = 0) => {
   );
 
   return new Promise((resolve) => {
-    canvas.toBlob((blob) => {
-      resolve(blob);
-    }, 'image/jpeg', 0.9);
+    // Compress: cap at 512px max dimension, JPEG quality 0.75
+    const MAX_DIM = 512;
+    let finalW = pixelCrop.width;
+    let finalH = pixelCrop.height;
+    if (finalW > MAX_DIM || finalH > MAX_DIM) {
+      const scale = MAX_DIM / Math.max(finalW, finalH);
+      finalW = Math.round(finalW * scale);
+      finalH = Math.round(finalH * scale);
+    }
+    // If we need to resize, draw onto a smaller canvas
+    if (finalW !== pixelCrop.width || finalH !== pixelCrop.height) {
+      const resizedCanvas = document.createElement('canvas');
+      resizedCanvas.width = finalW;
+      resizedCanvas.height = finalH;
+      const rctx = resizedCanvas.getContext('2d');
+      rctx.drawImage(canvas, 0, 0, finalW, finalH);
+      resizedCanvas.toBlob((blob) => {
+        resolve(blob);
+      }, 'image/jpeg', 0.75);
+    } else {
+      canvas.toBlob((blob) => {
+        resolve(blob);
+      }, 'image/jpeg', 0.75);
+    }
   });
 };
 
