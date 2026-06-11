@@ -64,13 +64,16 @@ const AvatarCropModal = ({ isOpen, imageSrc, onClose, onCropComplete }) => {
   }, []);
 
   const handleSave = async () => {
+    if (!croppedAreaPixels) return;
     try {
       setSaving(true);
       const croppedBlob = await getCroppedImg(imageSrc, croppedAreaPixels, 0);
+      if (!croppedBlob) throw new Error('Gagal memproses gambar');
       const file = new File([croppedBlob], 'avatar.jpg', { type: 'image/jpeg' });
       onCropComplete(file);
     } catch (err) {
       console.error('Error cropping image:', err);
+      alert('Gagal memotong gambar: ' + err.message);
     } finally {
       setSaving(false);
     }
@@ -79,18 +82,18 @@ const AvatarCropModal = ({ isOpen, imageSrc, onClose, onCropComplete }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[60] bg-black/70 flex items-center justify-center p-4">
-      <div className="w-full max-w-lg bg-surface-container rounded-xl border border-outline-variant overflow-hidden shadow-2xl">
+    <div className="fixed inset-0 z-[100] bg-black/70 flex items-center justify-center p-4">
+      <div className="w-full max-w-lg bg-surface-container rounded-xl border border-outline-variant overflow-hidden shadow-2xl max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="p-md border-b border-outline-variant flex items-center justify-between">
+        <div className="p-md border-b border-outline-variant flex items-center justify-between shrink-0">
           <h3 className="font-headline-md text-headline-md text-on-surface">Pangkas Foto Profil</h3>
           <button type="button" onClick={onClose} className="p-2 rounded-full text-on-surface-variant hover:text-on-surface">
             <span className="material-symbols-outlined">close</span>
           </button>
         </div>
 
-        {/* Crop Area */}
-        <div className="relative w-full" style={{ height: 400 }}>
+        {/* Crop Area — responsive: 300px mobile, 400px desktop */}
+        <div className="relative w-full h-[300px] md:h-[400px] shrink-0">
           <Cropper
             image={imageSrc}
             crop={crop}
@@ -105,7 +108,7 @@ const AvatarCropModal = ({ isOpen, imageSrc, onClose, onCropComplete }) => {
         </div>
 
         {/* Zoom Slider */}
-        <div className="px-md py-sm">
+        <div className="px-md py-sm shrink-0">
           <label className="font-label-sm text-label-sm text-on-surface-variant mb-xs block">
             Zoom: {zoom.toFixed(1)}x
           </label>
@@ -121,13 +124,13 @@ const AvatarCropModal = ({ isOpen, imageSrc, onClose, onCropComplete }) => {
         </div>
 
         {/* Actions */}
-        <ModalFooter>
+        <ModalFooter className="shrink-0">
           <button
             type="button"
             onClick={handleSave}
-            disabled={saving}
+            disabled={saving || !croppedAreaPixels}
             className={`h-11 w-full md:w-auto px-md rounded-lg font-bold transition-all duration-200 flex items-center justify-center ${
-              saving
+              saving || !croppedAreaPixels
                 ? 'bg-slate-600 text-slate-400 opacity-50 cursor-not-allowed'
                 : 'bg-primary text-on-primary hover:opacity-90 shadow-lg shadow-primary/20'
             }`}

@@ -128,7 +128,6 @@ function App() {
       setIsAuthenticated(true);
       setAuthError(null);
       setActivePage('dashboard');
-      window.location.href = '/dashboard';
     } catch (error) {
       setAuthError(error.message || 'Login gagal');
       throw error;
@@ -145,7 +144,6 @@ function App() {
       setIsAuthenticated(true);
       setAuthError(null);
       setActivePage('dashboard');
-      window.location.href = '/dashboard';
     } catch (error) {
       setAuthError(error.message || 'Registrasi gagal');
       throw error;
