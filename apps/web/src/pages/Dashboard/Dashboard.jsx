@@ -97,7 +97,7 @@ const Dashboard = ({ user, onOpenAddTransaction }) => {
 
       <OverviewCards transactions={transactions} loading={loading} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-gutter">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-gutter items-stretch">
         <CashFlowChart transactions={transactions} />
         <QuickActions user={user} onTransactionCreated={loadTransactions} onOpenAddTransaction={onOpenAddTransaction} />
       </div>
