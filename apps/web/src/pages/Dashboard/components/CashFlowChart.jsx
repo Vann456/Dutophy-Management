@@ -84,6 +84,7 @@ const CashFlowChart = ({ transactions = [] }) => {
       </div>
 
       <div className="flex-1 flex items-end justify-between h-40 md:h-56 mt-auto pb-sm relative border-b border-surface-variant">
+        {/* Chart area */}
         {/* Y-axis labels */}
         <div className="absolute left-0 top-0 h-full flex flex-col justify-between text-label-md font-label-md text-on-surface-variant pb-sm pl-3">
           <span>100%</span>
