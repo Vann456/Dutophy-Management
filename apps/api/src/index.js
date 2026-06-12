@@ -30,10 +30,19 @@ import { uploadToVercelBlob } from './upload.js';
 const app = new Hono();
 
 // Google OAuth2 client — reads GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET from env
+console.log('🔧 Initializing Google OAuth client...');
+const googleClientId = process.env['GOOGLE_CLIENT_ID'];
+const googleClientSecret = process.env['GOOGLE_CLIENT_SECRET'];
+
+console.log('🔧 Google Client ID from env:', googleClientId ? `${googleClientId.substring(0, 20)}...` : 'NOT SET');
+console.log('🔧 Google Client Secret from env:', googleClientSecret ? 'SET' : 'NOT SET');
+
 const googleClient = new OAuth2Client(
-  process.env['GOOGLE_CLIENT_ID'] || '',
-  process.env['GOOGLE_CLIENT_SECRET'] || '',
+  googleClientId || '',
+  googleClientSecret || '',
 );
+
+console.log('🔧 Google OAuth client initialized:', googleClient ? 'YES' : 'NO');
 
 app.onError((err, c) => {
   console.error('Unhandled request error:', err);
@@ -136,78 +145,92 @@ app.options('*', (c) => {
 app.get('/health', (c) => c.json({ ok: true }));
 
 app.post('/api/auth/login', async (c) => {
-  const body = await c.req.json();
-  const { username, password } = body;
-  if (!username || !password) {
-    return c.json({ error: 'Username and password required' }, 400);
-  }
+  try {
+    const body = await c.req.json();
+    const { username, password } = body;
+    
+    if (!username || !password) {
+      return c.json({ error: 'Username and password required' }, 400);
+    }
 
-  const rows = await db.select().from(users).where(eq(users.username, username)).limit(1);
-  const user = rows[0];
+    console.log(`🔐 Login attempt for user: ${username}`);
+    
+    const rows = await db.select().from(users).where(eq(users.username, username)).limit(1);
+    const user = rows[0];
 
-  // Guard: Users with no password (Google OAuth) cannot log in with password
-  if (user && !user.password) {
-    return c.json({ error: 'Akun ini terdaftar menggunakan Google. Silakan login menggunakan tombol Google.' }, 403);
-  }
+    // Guard: Users with no password (Google OAuth) cannot log in with password
+    if (user && !user.password) {
+      return c.json({ error: 'Akun ini terdaftar menggunakan Google. Silakan login menggunakan tombol Google.' }, 403);
+    }
 
-  if (!user || !verifyPassword(password, user.password)) {
-    // Log failed login attempt
+    if (!user || !verifyPassword(password, user.password)) {
+      // Log failed login attempt
+      const { ipAddress, userAgent } = extractClientInfo(c);
+      await createAuditLog({
+        username: username || 'unknown',
+        action: 'LOGIN_FAILED',
+        targetType: 'USER',
+        targetId: user?.id || null,
+        description: 'Failed login attempt',
+        ipAddress,
+        userAgent,
+      });
+      return c.json({ error: 'Invalid credentials' }, 401);
+    }
+
+    // Check if account is deactivated
+    if (user.status === 'alumni') {
+      const { ipAddress, userAgent } = extractClientInfo(c);
+      await createAuditLog({
+        username: username || 'unknown',
+        action: 'LOGIN_FAILED',
+        targetType: 'USER',
+        targetId: user?.id || null,
+        description: 'Deactivated account login attempt',
+        ipAddress,
+        userAgent,
+      });
+      return c.json({ error: 'Akun Anda telah dinonaktifkan. Silakan hubungi Ketua.' }, 403);
+    }
+
+    const token = createToken();
+    tokenStore.set(token, user.username);
+
+    // Log successful login
     const { ipAddress, userAgent } = extractClientInfo(c);
     await createAuditLog({
-      username: username || 'unknown',
-      action: 'LOGIN_FAILED',
-      targetType: 'USER',
-      targetId: user?.id || null,
-      description: 'Failed login attempt',
-      ipAddress,
-      userAgent,
-    });
-    return c.json({ error: 'Invalid credentials' }, 401);
-  }
-
-  // Check if account is deactivated
-  if (user.status === 'alumni') {
-    const { ipAddress, userAgent } = extractClientInfo(c);
-    await createAuditLog({
-      username: username || 'unknown',
-      action: 'LOGIN_FAILED',
-      targetType: 'USER',
-      targetId: user?.id || null,
-      description: 'Deactivated account login attempt',
-      ipAddress,
-      userAgent,
-    });
-    return c.json({ error: 'Akun Anda telah dinonaktifkan. Silakan hubungi Ketua.' }, 403);
-  }
-
-  const token = createToken();
-  tokenStore.set(token, user.username);
-
-  // Log successful login
-  const { ipAddress, userAgent } = extractClientInfo(c);
-  await createAuditLog({
-    userId: user.id,
-    username: user.username,
-    action: 'LOGIN',
-    targetType: 'USER',
-    targetId: user.id,
-    description: `User ${user.username} logged in`,
-    ipAddress,
-    userAgent,
-  });
-
-  return c.json({
-    success: true,
-    token,
-    user: {
-      id: user.id,
+      userId: user.id,
       username: user.username,
-      role: user.role,
-      name: user.name,
-      email: user.email || '',
-      avatarUrl: user.avatarUrl || '',
-    },
-  });
+      action: 'LOGIN',
+      targetType: 'USER',
+      targetId: user.id,
+      description: `User ${user.username} logged in`,
+      ipAddress,
+      userAgent,
+    });
+
+    console.log(`✅ Login successful for user: ${username}, role: ${user.role}`);
+    
+    return c.json({
+      success: true,
+      token,
+      user: {
+        id: user.id,
+        username: user.username,
+        role: user.role,
+        name: user.name,
+        email: user.email || '',
+        avatarUrl: user.avatarUrl || '',
+      },
+    });
+  } catch (err) {
+    console.error('❌ Login endpoint error:', err);
+    console.error('Error stack:', err.stack);
+    return c.json({ 
+      error: 'Internal server error during authentication',
+      details: process.env.NODE_ENV === 'development' ? err.message : 'Please try again later'
+    }, 500);
+  }
 });
 
 app.post('/api/auth/register', async (c) => {
@@ -303,10 +326,20 @@ app.post('/api/auth/google', async (c) => {
     const { sub: googleId, email, name, picture } = payload;
 
     // 1. Check if a user already exists with this googleId
-    let existingByGoogleId = await db.select().from(users).where(eq(users.googleId, googleId)).limit(1);
+    console.log(`🔍 Checking for existing user with Google ID: ${googleId}`);
+    let existingByGoogleId = [];
+    try {
+      existingByGoogleId = await db.select().from(users).where(eq(users.googleId, googleId)).limit(1);
+    } catch (dbErr) {
+      console.error('❌ Database query error (googleId lookup):', dbErr);
+      throw new Error(`Database error: ${dbErr.message}`);
+    }
+    
     if (existingByGoogleId.length > 0) {
       // User already linked — log them in
       const user = existingByGoogleId[0];
+      console.log(`✅ Found existing user: ${user.username} (ID: ${user.id})`);
+      
       const token = createToken();
       tokenStore.set(token, user.username);
 
@@ -337,16 +370,33 @@ app.post('/api/auth/google', async (c) => {
     }
 
     // 2. Check if a user already exists with this email (account linking)
-    let existingByEmail = await db.select().from(users).where(eq(users.email, email)).limit(1);
+    console.log(`🔍 Checking for existing user with email: ${email}`);
+    let existingByEmail = [];
+    try {
+      existingByEmail = await db.select().from(users).where(eq(users.email, email)).limit(1);
+    } catch (dbErr) {
+      console.error('❌ Database query error (email lookup):', dbErr);
+      throw new Error(`Database error: ${dbErr.message}`);
+    }
+    
     if (existingByEmail.length > 0) {
       // Link Google account to existing user
       const user = existingByEmail[0];
+      console.log(`✅ Found existing user by email: ${user.username} (ID: ${user.id})`);
+      
       const updates = { googleId, authProvider: 'google' };
       // Update avatar from Google profile if user doesn't have one yet
       if (!user.avatarUrl && picture) {
         updates.avatarUrl = picture;
       }
-      await db.update(users).set(updates).where(eq(users.id, user.id));
+      
+      try {
+        await db.update(users).set(updates).where(eq(users.id, user.id));
+        console.log(`✅ Updated user ${user.username} with Google OAuth data`);
+      } catch (updateErr) {
+        console.error('❌ Database update error:', updateErr);
+        throw new Error(`Database update error: ${updateErr.message}`);
+      }
 
       const token = createToken();
       tokenStore.set(token, user.username);
@@ -378,28 +428,45 @@ app.post('/api/auth/google', async (c) => {
     }
 
     // 3. Create new Google-only user with 'pending' role
+    console.log(`📝 Creating new user for Google OAuth: ${email}`);
     const newUsername = email.split('@')[0];
+    
     // Ensure username is unique by appending numbers if needed
     let usernameCandidate = newUsername;
     let counter = 1;
     while (true) {
-      const existing = await db.select().from(users).where(eq(users.username, usernameCandidate)).limit(1);
-      if (existing.length === 0) break;
-      usernameCandidate = `${newUsername}${counter}`;
-      counter++;
+      try {
+        const existing = await db.select().from(users).where(eq(users.username, usernameCandidate)).limit(1);
+        if (existing.length === 0) break;
+        usernameCandidate = `${newUsername}${counter}`;
+        counter++;
+      } catch (dbErr) {
+        console.error('❌ Database query error (username check):', dbErr);
+        throw new Error(`Database error: ${dbErr.message}`);
+      }
     }
+    
+    console.log(`📝 Generated username: ${usernameCandidate}`);
 
-    const inserted = await db.insert(users).values({
-      username: usernameCandidate,
-      password: null, // Google-only users have no password
-      role: 'pending', // Must be approved by admin before accessing sensitive data
-      name: name || email.split('@')[0],
-      email,
-      googleId,
-      authProvider: 'google',
-      avatarUrl: picture || null,
-    }).returning();
+    let inserted = [];
+    try {
+      inserted = await db.insert(users).values({
+        username: usernameCandidate,
+        password: null, // Google-only users have no password
+        role: 'pending', // Must be approved by admin before accessing sensitive data
+        name: name || email.split('@')[0],
+        email,
+        googleId,
+        authProvider: 'google',
+        avatarUrl: picture || null,
+      }).returning();
+    } catch (insertErr) {
+      console.error('❌ Database insert error:', insertErr);
+      throw new Error(`Database insert error: ${insertErr.message}`);
+    }
+    
     const newUser = inserted[0];
+    console.log(`✅ Created new user: ${newUser.username} (ID: ${newUser.id}, Role: ${newUser.role})`);
 
     const token = createToken();
     tokenStore.set(token, newUser.username);
@@ -429,11 +496,33 @@ app.post('/api/auth/google', async (c) => {
       },
     });
   } catch (err) {
-    console.error('Google OAuth error:', err);
+    console.error('❌ Google OAuth error:', err);
+    console.error('❌ Error stack:', err.stack);
+    console.error('❌ Error details:', {
+      message: err.message,
+      name: err.name,
+      code: err.code
+    });
+    
+    // Handle specific Google OAuth errors
+    if (err.message.includes('Token used too late')) {
+      return c.json({
+        error: 'Token sudah kedaluwarsa. Silakan login kembali.',
+      }, 401);
+    } else if (err.message.includes('Invalid token signature')) {
+      return c.json({
+        error: 'Token tidak valid. Silakan coba lagi.',
+      }, 401);
+    } else if (err.message.includes('Audience mismatch')) {
+      return c.json({
+        error: 'Konfigurasi Google OAuth tidak sesuai. Hubungi administrator.',
+      }, 500);
+    }
+    
     return c.json({
       error: 'Autentikasi Google gagal. Silakan coba lagi.',
-      details: err.message,
-    }, 401);
+      details: process.env.NODE_ENV === 'development' ? err.message : undefined,
+    }, 500);
   }
 });
 
