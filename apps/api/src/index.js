@@ -1,3 +1,5 @@
+// ─── CRITICAL: Load environment variables FIRST ─────────────────────────────
+import 'dotenv/config';
 import crypto from 'node:crypto';
 
 // ─── Boot diagnostic: verify critical env vars are available ─────────────
@@ -34,8 +36,17 @@ console.log('🔧 Initializing Google OAuth client...');
 const googleClientId = process.env['GOOGLE_CLIENT_ID'];
 const googleClientSecret = process.env['GOOGLE_CLIENT_SECRET'];
 
-console.log('🔧 Google Client ID from env:', googleClientId ? `${googleClientId.substring(0, 20)}...` : 'NOT SET');
-console.log('🔧 Google Client Secret from env:', googleClientSecret ? 'SET' : 'NOT SET');
+console.log('🔧 Google Client ID from env:', googleClientId ? `${googleClientId.substring(0, 20)}...` : '❌ NOT SET');
+console.log('🔧 Google Client Secret from env:', googleClientSecret ? 'SET' : '❌ NOT SET');
+
+// Warning if Google OAuth is not configured
+if (!googleClientId || !googleClientSecret) {
+  console.warn('⚠️  WARNING: Google OAuth is not fully configured!');
+  console.warn('⚠️  Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in:');
+  console.warn('⚠️  - Local: apps/api/.env');
+  console.warn('⚠️  - Production: Render environment variables');
+  console.warn('⚠️  Google OAuth login will fail until these are configured.');
+}
 
 const googleClient = new OAuth2Client(
   googleClientId || '',
@@ -350,25 +361,40 @@ app.post('/api/auth/google', async (c) => {
     const { credential } = body;
 
     if (!credential) {
-      return c.json({ error: 'Google credential is required' }, 400);
+      return c.json({ success: false, error: 'Google credential is required' }, 400);
     }
 
-    // Validate Google Client ID before attempting verification
-    const googleClientId = process.env['GOOGLE_CLIENT_ID'];
-    const googleClientSecret = process.env['GOOGLE_CLIENT_SECRET'];
+    // ─── STRICT ENV GUARD: Check for required Google OAuth configuration ────
+    // Try both Hono context env (Cloudflare Workers) and process.env (Node.js)
+    const googleClientId = c.env?.GOOGLE_CLIENT_ID || process.env['GOOGLE_CLIENT_ID'];
+    const googleClientSecret = c.env?.GOOGLE_CLIENT_SECRET || process.env['GOOGLE_CLIENT_SECRET'];
     
-    console.log(`🔐 Google OAuth - Client ID: ${googleClientId ? 'SET' : 'MISSING'}`);
-    console.log(`🔐 Google OAuth - Client Secret: ${googleClientSecret ? 'SET' : 'MISSING'}`);
+    console.log(`🔐 Google OAuth - Client ID: ${googleClientId ? 'SET' : '❌ MISSING'}`);
+    console.log(`🔐 Google OAuth - Client Secret: ${googleClientSecret ? 'SET' : '❌ MISSING'}`);
     console.log(`🔐 Google OAuth - Credential length: ${credential.length}`);
     
+    // Critical configuration check
     if (!googleClientId) {
-      console.error('❌ Google OAuth: GOOGLE_CLIENT_ID environment variable is not set');
+      console.error('❌ CRITICAL: GOOGLE_CLIENT_ID is not set in environment variables');
+      console.error('❌ Check: 1) apps/api/.env file, 2) Render environment variables');
       return c.json({ 
-        error: 'Server configuration error: Google OAuth is not properly configured' 
+        success: false,
+        error: 'Configuration Error: Backend GOOGLE_CLIENT_ID is missing on the server.',
+        hint: 'Please contact the administrator to configure Google OAuth credentials.'
+      }, 500);
+    }
+    
+    if (!googleClientSecret) {
+      console.error('❌ CRITICAL: GOOGLE_CLIENT_SECRET is not set in environment variables');
+      return c.json({ 
+        success: false,
+        error: 'Configuration Error: Backend GOOGLE_CLIENT_SECRET is missing on the server.',
+        hint: 'Please contact the administrator to configure Google OAuth credentials.'
       }, 500);
     }
 
     // Verify the Google ID token server-side
+    console.log(`🔐 Attempting to verify Google token...`);
     const ticket = await googleClient.verifyIdToken({
       idToken: credential,
       audience: googleClientId,
