@@ -169,7 +169,30 @@ app.options('*', (c) => {
   return c.text('ok', 200);
 });
 
-app.get('/health', (c) => c.json({ ok: true }));
+// Enhanced health check endpoint with database verification
+app.get('/health', async (c) => {
+  const health = {
+    ok: true,
+    timestamp: new Date().toISOString(),
+    environment: {
+      googleOAuth: !!(process.env['GOOGLE_CLIENT_ID'] && process.env['GOOGLE_CLIENT_SECRET']),
+      database: false,
+    }
+  };
+
+  // Test database connection
+  try {
+    const result = await db.execute('SELECT 1 as test');
+    health.environment.database = true;
+  } catch (err) {
+    console.error('Health check - database error:', err.message);
+    health.ok = false;
+    health.environment.database = false;
+    health.error = 'Database connection failed';
+  }
+
+  return c.json(health, health.ok ? 200 : 503);
+});
 
 app.post('/api/auth/login', async (c) => {
   try {
