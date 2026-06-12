@@ -295,10 +295,14 @@ function App() {
 }
 
 // Wrap the entire App with GoogleOAuthProvider
-const AppWithGoogle = () => (
-  <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || ''}>
-    <App />
-  </GoogleOAuthProvider>
-);
+const AppWithGoogle = () => {
+  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
+  console.log('Google Client ID status:', !!clientId, clientId ? `(${clientId.substring(0, 20)}...)` : '(empty)');
+  return (
+    <GoogleOAuthProvider clientId={clientId}>
+      <App />
+    </GoogleOAuthProvider>
+  );
+};
 
 export default AppWithGoogle;

@@ -107,9 +107,9 @@ app.post('/api/auth/login', async (c) => {
   const rows = await db.select().from(users).where(eq(users.username, username)).limit(1);
   const user = rows[0];
 
-  // Guard: Google-only users cannot log in with password
-  if (user && user.authProvider === 'google' && !user.password) {
-    return c.json({ error: 'Akun ini hanya bisa login menggunakan Google. Silakan klik "Sign in with Google".' }, 403);
+  // Guard: Users with no password (Google OAuth) cannot log in with password
+  if (user && !user.password) {
+    return c.json({ error: 'Akun ini terdaftar menggunakan Google. Silakan login menggunakan tombol Google.' }, 403);
   }
 
   if (!user || !verifyPassword(password, user.password)) {
