@@ -90,50 +90,48 @@ const ensureDemoAdmin = async () => {
 
 await ensureDemoAdmin();
 
-// Enhanced CORS configuration with debugging
-const allowedOrigins = [
-  'https://dutophy.vercel.app',
-  'http://localhost:5173',
-  'http://localhost:3000',
-  'http://localhost:3001',
-  // Development origins
-  'http://localhost:8080',
-  'http://127.0.0.1:5173',
-  'http://127.0.0.1:3000',
-  'http://127.0.0.1:3001',
-];
-
-app.use('*', (c, next) => {
-  const origin = c.req.header('origin');
-  console.log(`🌐 CORS Request - Origin: ${origin || '(none)'}, Method: ${c.req.method}, Path: ${c.req.path}`);
-  return next();
-});
-
+// Simplified and robust CORS configuration
 app.use('*', cors({
-  origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps or curl)
-    if (!origin) {
-      console.log('🌐 CORS: Allowing request without origin header');
-      return callback(null, true);
-    }
-    
-    // Check if origin is allowed
-    if (allowedOrigins.includes(origin)) {
-      console.log(`🌐 CORS: Allowing origin: ${origin}`);
-      return callback(null, true);
-    }
-    
-    console.log(`🌐 CORS: Rejected origin: ${origin}`);
-    return callback(new Error('Not allowed by CORS'), false);
-  },
+  origin: [
+    'https://dutophy.vercel.app',
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'http://localhost:3001',
+  ],
+  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH', 'HEAD'],
   allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'],
+  credentials: true,
   exposeHeaders: ['Content-Length', 'X-Response-Time'],
-  allowCredentials: true,
   maxAge: 86400, // 24 hours
 }));
 
-app.options('*', (c) => c.text('ok'));
+// Add logging middleware for CORS debugging
+app.use('*', async (c, next) => {
+  const origin = c.req.header('origin');
+  console.log(`🌐 CORS Request - Origin: ${origin || '(none)'}, Method: ${c.req.method}, Path: ${c.req.path}`);
+  await next();
+});
+
+// Enhanced OPTIONS handler for preflight requests
+app.options('*', (c) => {
+  const origin = c.req.header('origin');
+  const allowedOrigin = [
+    'https://dutophy.vercel.app',
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'http://localhost:3001',
+  ].includes(origin) ? origin : 'https://dutophy.vercel.app';
+  
+  console.log(`🌐 OPTIONS Preflight - Origin: ${origin || '(none)'}, Method: ${c.req.method}`);
+  
+  c.header('Access-Control-Allow-Origin', allowedOrigin);
+  c.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD');
+  c.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  c.header('Access-Control-Allow-Credentials', 'true');
+  c.header('Access-Control-Max-Age', '86400');
+  
+  return c.text('ok', 200);
+});
 
 app.get('/health', (c) => c.json({ ok: true }));
 

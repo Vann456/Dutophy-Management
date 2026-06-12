@@ -296,8 +296,15 @@ function App() {
 
 // Wrap the entire App with GoogleOAuthProvider
 const AppWithGoogle = () => {
-  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
+  // Try to get client ID from environment variable first
+  let clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
   const apiUrl = import.meta.env.VITE_API_URL || '';
+  
+  // If environment variable is empty, use hardcoded fallback for production
+  if (!clientId && import.meta.env.PROD) {
+    console.warn('⚠️ VITE_GOOGLE_CLIENT_ID not found in environment, using fallback for production');
+    clientId = '509992383371-ojhnr8pd1a924jpuerstg9snd953bsod.apps.googleusercontent.com';
+  }
   
   // Comprehensive environment logging for debugging
   console.log('🔧 Environment Debug Information:');
@@ -306,11 +313,11 @@ const AppWithGoogle = () => {
   console.log('  Build Mode:', import.meta.env.MODE);
   console.log('  Production:', import.meta.env.PROD);
   console.log('  Development:', import.meta.env.DEV);
-  console.log('  All env keys:', Object.keys(import.meta.env).filter(k => k.startsWith('VITE_')));
+  console.log('  All VITE_ env keys:', Object.keys(import.meta.env).filter(k => k.startsWith('VITE_')));
   
   if (!clientId) {
-    console.error('❌ CRITICAL: VITE_GOOGLE_CLIENT_ID is empty. Google OAuth will fail.');
-    alert('Warning: Google OAuth is not configured. Please check environment variables.');
+    console.error('❌ CRITICAL: Google Client ID is empty. Google OAuth will fail.');
+    alert('Warning: Google OAuth is not configured. Please check environment variables in Vercel dashboard.');
   }
   
   return (
