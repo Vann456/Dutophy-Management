@@ -297,7 +297,22 @@ function App() {
 // Wrap the entire App with GoogleOAuthProvider
 const AppWithGoogle = () => {
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
-  console.log('Google Client ID status:', !!clientId, clientId ? `(${clientId.substring(0, 20)}...)` : '(empty)');
+  const apiUrl = import.meta.env.VITE_API_URL || '';
+  
+  // Comprehensive environment logging for debugging
+  console.log('🔧 Environment Debug Information:');
+  console.log('  VITE_GOOGLE_CLIENT_ID:', clientId ? `✓ SET (${clientId.substring(0, 20)}...)` : '✗ EMPTY/MISSING');
+  console.log('  VITE_API_URL:', apiUrl ? `✓ SET (${apiUrl})` : '✗ EMPTY/MISSING');
+  console.log('  Build Mode:', import.meta.env.MODE);
+  console.log('  Production:', import.meta.env.PROD);
+  console.log('  Development:', import.meta.env.DEV);
+  console.log('  All env keys:', Object.keys(import.meta.env).filter(k => k.startsWith('VITE_')));
+  
+  if (!clientId) {
+    console.error('❌ CRITICAL: VITE_GOOGLE_CLIENT_ID is empty. Google OAuth will fail.');
+    alert('Warning: Google OAuth is not configured. Please check environment variables.');
+  }
+  
   return (
     <GoogleOAuthProvider clientId={clientId}>
       <App />

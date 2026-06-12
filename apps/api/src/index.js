@@ -6,13 +6,17 @@ import crypto from 'node:crypto';
 const BLOB_TOKEN = process.env['BLOB_READ_WRITE_TOKEN'];
 const DB_URL = process.env['DATABASE_URL'];
 const PORT_VAL = process.env['PORT'] || '3001 (default)';
+const GOOGLE_CLIENT_ID = process.env['GOOGLE_CLIENT_ID'];
+const GOOGLE_CLIENT_SECRET = process.env['GOOGLE_CLIENT_SECRET'];
 console.log('🚀 [Server Boot] Environment check:');
 console.log('   BLOB_READ_WRITE_TOKEN:', BLOB_TOKEN ? `SET (length: ${BLOB_TOKEN.length})` : '❌ NOT SET');
 console.log('   DATABASE_URL:', DB_URL ? 'SET' : '❌ NOT SET');
 console.log('   PORT:', PORT_VAL);
+console.log('   GOOGLE_CLIENT_ID:', GOOGLE_CLIENT_ID ? `SET (${GOOGLE_CLIENT_ID.substring(0, 20)}...)` : '❌ NOT SET');
+console.log('   GOOGLE_CLIENT_SECRET:', GOOGLE_CLIENT_SECRET ? 'SET' : '❌ NOT SET');
 // Dump all env keys matching known patterns to aid debugging
-console.log('🔍 Env keys matching *BLOB*, *TOKEN*, *VERCEL*:', 
-  Object.keys(process.env).filter(k => /BLOB|TOKEN|VERCEL/i.test(k)).join(', ') || '(none found)');
+console.log('🔍 Env keys matching *BLOB*, *TOKEN*, *VERCEL*, *GOOGLE*:', 
+  Object.keys(process.env).filter(k => /BLOB|TOKEN|VERCEL|GOOGLE/i.test(k)).join(', ') || '(none found)');
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { serve } from '@hono/node-server';
@@ -86,11 +90,47 @@ const ensureDemoAdmin = async () => {
 
 await ensureDemoAdmin();
 
+// Enhanced CORS configuration with debugging
+const allowedOrigins = [
+  'https://dutophy.vercel.app',
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://localhost:3001',
+  // Development origins
+  'http://localhost:8080',
+  'http://127.0.0.1:5173',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:3001',
+];
+
+app.use('*', (c, next) => {
+  const origin = c.req.header('origin');
+  console.log(`🌐 CORS Request - Origin: ${origin || '(none)'}, Method: ${c.req.method}, Path: ${c.req.path}`);
+  return next();
+});
+
 app.use('*', cors({
-  origin: '*',
-  allowHeaders: ['Content-Type', 'Authorization'],
-  allowMethods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl)
+    if (!origin) {
+      console.log('🌐 CORS: Allowing request without origin header');
+      return callback(null, true);
+    }
+    
+    // Check if origin is allowed
+    if (allowedOrigins.includes(origin)) {
+      console.log(`🌐 CORS: Allowing origin: ${origin}`);
+      return callback(null, true);
+    }
+    
+    console.log(`🌐 CORS: Rejected origin: ${origin}`);
+    return callback(new Error('Not allowed by CORS'), false);
+  },
+  allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'],
+  exposeHeaders: ['Content-Length', 'X-Response-Time'],
   allowCredentials: true,
+  maxAge: 86400, // 24 hours
 }));
 
 app.options('*', (c) => c.text('ok'));
@@ -236,10 +276,25 @@ app.post('/api/auth/google', async (c) => {
       return c.json({ error: 'Google credential is required' }, 400);
     }
 
+    // Validate Google Client ID before attempting verification
+    const googleClientId = process.env['GOOGLE_CLIENT_ID'];
+    const googleClientSecret = process.env['GOOGLE_CLIENT_SECRET'];
+    
+    console.log(`🔐 Google OAuth - Client ID: ${googleClientId ? 'SET' : 'MISSING'}`);
+    console.log(`🔐 Google OAuth - Client Secret: ${googleClientSecret ? 'SET' : 'MISSING'}`);
+    console.log(`🔐 Google OAuth - Credential length: ${credential.length}`);
+    
+    if (!googleClientId) {
+      console.error('❌ Google OAuth: GOOGLE_CLIENT_ID environment variable is not set');
+      return c.json({ 
+        error: 'Server configuration error: Google OAuth is not properly configured' 
+      }, 500);
+    }
+
     // Verify the Google ID token server-side
     const ticket = await googleClient.verifyIdToken({
       idToken: credential,
-      audience: process.env['GOOGLE_CLIENT_ID'],
+      audience: googleClientId,
     });
 
     const payload = ticket.getPayload();
