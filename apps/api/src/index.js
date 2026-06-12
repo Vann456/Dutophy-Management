@@ -16,6 +16,7 @@ console.log('🔍 Env keys matching *BLOB*, *TOKEN*, *VERCEL*:',
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { serve } from '@hono/node-server';
+import { OAuth2Client } from 'google-auth-library';
 import { eq, desc, asc, and, gte, lte, like } from 'drizzle-orm';
 import { db } from './db.js';
 import { users, transactions, members, attendance, cashRecords, approvals, auditLogs, config, categories } from './schema.js';
@@ -23,6 +24,12 @@ import { createAuditLog, extractClientInfo } from './auditLog.js';
 import { uploadToVercelBlob } from './upload.js';
 
 const app = new Hono();
+
+// Google OAuth2 client — reads GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET from env
+const googleClient = new OAuth2Client(
+  process.env['GOOGLE_CLIENT_ID'] || '',
+  process.env['GOOGLE_CLIENT_SECRET'] || '',
+);
 
 app.onError((err, c) => {
   console.error('Unhandled request error:', err);
@@ -99,6 +106,12 @@ app.post('/api/auth/login', async (c) => {
 
   const rows = await db.select().from(users).where(eq(users.username, username)).limit(1);
   const user = rows[0];
+
+  // Guard: Google-only users cannot log in with password
+  if (user && user.authProvider === 'google' && !user.password) {
+    return c.json({ error: 'Akun ini hanya bisa login menggunakan Google. Silakan klik "Sign in with Google".' }, 403);
+  }
+
   if (!user || !verifyPassword(password, user.password)) {
     // Log failed login attempt
     const { ipAddress, userAgent } = extractClientInfo(c);
@@ -211,6 +224,164 @@ app.get('/api/auth/me', async (c) => {
     email: user.email || '',
     avatarUrl: user.avatarUrl || '',
   } });
+});
+
+// ─── Google OAuth Login ─────────────────────────────────────────────────────
+app.post('/api/auth/google', async (c) => {
+  try {
+    const body = await c.req.json();
+    const { credential } = body;
+
+    if (!credential) {
+      return c.json({ error: 'Google credential is required' }, 400);
+    }
+
+    // Verify the Google ID token server-side
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: process.env['GOOGLE_CLIENT_ID'],
+    });
+
+    const payload = ticket.getPayload();
+    if (!payload || !payload.sub || !payload.email) {
+      return c.json({ error: 'Invalid Google token: missing user info' }, 400);
+    }
+
+    const { sub: googleId, email, name, picture } = payload;
+
+    // 1. Check if a user already exists with this googleId
+    let existingByGoogleId = await db.select().from(users).where(eq(users.googleId, googleId)).limit(1);
+    if (existingByGoogleId.length > 0) {
+      // User already linked — log them in
+      const user = existingByGoogleId[0];
+      const token = createToken();
+      tokenStore.set(token, user.username);
+
+      const { ipAddress, userAgent } = extractClientInfo(c);
+      await createAuditLog({
+        userId: user.id,
+        username: user.username,
+        action: 'LOGIN',
+        targetType: 'USER',
+        targetId: user.id,
+        description: `User ${user.username} logged in via Google OAuth`,
+        ipAddress,
+        userAgent,
+      });
+
+      return c.json({
+        success: true,
+        token,
+        user: {
+          id: user.id,
+          username: user.username,
+          role: user.role,
+          name: user.name,
+          email: user.email || '',
+          avatarUrl: user.avatarUrl || '',
+        },
+      });
+    }
+
+    // 2. Check if a user already exists with this email (account linking)
+    let existingByEmail = await db.select().from(users).where(eq(users.email, email)).limit(1);
+    if (existingByEmail.length > 0) {
+      // Link Google account to existing user
+      const user = existingByEmail[0];
+      const updates = { googleId, authProvider: 'google' };
+      // Update avatar from Google profile if user doesn't have one yet
+      if (!user.avatarUrl && picture) {
+        updates.avatarUrl = picture;
+      }
+      await db.update(users).set(updates).where(eq(users.id, user.id));
+
+      const token = createToken();
+      tokenStore.set(token, user.username);
+
+      const { ipAddress, userAgent } = extractClientInfo(c);
+      await createAuditLog({
+        userId: user.id,
+        username: user.username,
+        action: 'LOGIN',
+        targetType: 'USER',
+        targetId: user.id,
+        description: `User ${user.username} linked Google account and logged in`,
+        ipAddress,
+        userAgent,
+      });
+
+      return c.json({
+        success: true,
+        token,
+        user: {
+          id: user.id,
+          username: user.username,
+          role: user.role,
+          name: user.name,
+          email: user.email || '',
+          avatarUrl: updates.avatarUrl || user.avatarUrl || '',
+        },
+      });
+    }
+
+    // 3. Create new Google-only user with 'pending' role
+    const newUsername = email.split('@')[0];
+    // Ensure username is unique by appending numbers if needed
+    let usernameCandidate = newUsername;
+    let counter = 1;
+    while (true) {
+      const existing = await db.select().from(users).where(eq(users.username, usernameCandidate)).limit(1);
+      if (existing.length === 0) break;
+      usernameCandidate = `${newUsername}${counter}`;
+      counter++;
+    }
+
+    const inserted = await db.insert(users).values({
+      username: usernameCandidate,
+      password: null, // Google-only users have no password
+      role: 'pending', // Must be approved by admin before accessing sensitive data
+      name: name || email.split('@')[0],
+      email,
+      googleId,
+      authProvider: 'google',
+      avatarUrl: picture || null,
+    }).returning();
+    const newUser = inserted[0];
+
+    const token = createToken();
+    tokenStore.set(token, newUser.username);
+
+    const { ipAddress, userAgent } = extractClientInfo(c);
+    await createAuditLog({
+      userId: newUser.id,
+      username: newUser.username,
+      action: 'LOGIN',
+      targetType: 'USER',
+      targetId: newUser.id,
+      description: `New user ${newUser.username} registered via Google OAuth (pending approval)`,
+      ipAddress,
+      userAgent,
+    });
+
+    return c.json({
+      success: true,
+      token,
+      user: {
+        id: newUser.id,
+        username: newUser.username,
+        role: newUser.role,
+        name: newUser.name,
+        email: newUser.email || '',
+        avatarUrl: newUser.avatarUrl || '',
+      },
+    });
+  } catch (err) {
+    console.error('Google OAuth error:', err);
+    return c.json({
+      error: 'Autentikasi Google gagal. Silakan coba lagi.',
+      details: err.message,
+    }, 401);
+  }
 });
 
 app.patch('/api/auth/avatar', async (c) => {

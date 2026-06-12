@@ -3,11 +3,13 @@ import { pgTable, serial, text, integer, timestamp } from 'drizzle-orm/pg-core';
 export const users = pgTable('users', {
   id: serial('id').primaryKey(),
   username: text('username').notNull(),
-  password: text('password').notNull(),
-  role: text('role').notNull().default('Anggota'), // 'ketua', 'wakil', 'bendahara', 'sekretaris', 'guest', 'Anggota', 'alumni'
+  password: text('password'), // nullable for Google-only OAuth users
+  role: text('role').notNull().default('Anggota'), // 'ketua', 'wakil', 'bendahara', 'sekretaris', 'guest', 'Anggota', 'alumni', 'pending'
   name: text('name').notNull(),
   email: text('email'),
-  avatarUrl: text('avatar_url'), // profile picture URL from Vercel Blob
+  avatarUrl: text('avatar_url'), // profile picture URL from Vercel Blob or Google profile
+  googleId: text('google_id'), // Google's unique user ID (sub claim) for OAuth users
+  authProvider: text('auth_provider').default('local'), // 'local' or 'google'
   status: text('status').default('active'), // 'active' or 'alumni'
   createdAt: timestamp('created_at').defaultNow(),
 });
