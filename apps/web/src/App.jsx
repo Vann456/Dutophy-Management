@@ -14,6 +14,9 @@ import { fetchAuthMe, login, register, updateAvatar, loginWithGoogle } from './a
 import { AnggotaProvider } from './lib/AnggotaContext';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 
+// Single source of truth for the API base URL across the entire app
+const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3001').trim() || 'http://localhost:3001';
+
 const pageTitles = {
   dashboard: 'Overview Keuangan',
   pemasukan: 'Laporan Pemasukan',
@@ -63,13 +66,11 @@ function App() {
   const handleCropComplete = useCallback(async (croppedFile) => {
     setAvatarCropImage(null);
     try {
-      // ⚠️ CRITICAL: Only send FormData to our backend. NO @vercel/blob on client.
+      // FormData upload — uses module-level API_BASE, not apiFetch (which forces JSON headers)
       const formData = new FormData();
       formData.append('file', croppedFile, 'avatar.jpg');
       
-      const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3001').trim() || 'http://localhost:3001';
       const token = localStorage.getItem('token');
-      
       const uploadHeaders = {};
       if (token) uploadHeaders.Authorization = `Bearer ${token}`;
       
@@ -296,30 +297,25 @@ function App() {
 
 // Wrap the entire App with GoogleOAuthProvider
 const AppWithGoogle = () => {
-  // Try to get client ID from environment variable first
+  // Try to get client ID from Vercel environment variable first
   let clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
-  const apiUrl = import.meta.env.VITE_API_URL || '';
-  
-  // If environment variable is empty, use hardcoded fallback for production
-  if (!clientId && import.meta.env.PROD) {
-    console.warn('⚠️ VITE_GOOGLE_CLIENT_ID not found in environment, using fallback for production');
+  const usingFallback = !clientId;
+
+  // Fallback to hardcoded value if env var isn't injected by Vercel
+  if (!clientId) {
     clientId = '509992383371-ojhnr8pd1a924jpuerstg9snd953bsod.apps.googleusercontent.com';
   }
-  
-  // Comprehensive environment logging for debugging
-  console.log('🔧 Environment Debug Information:');
-  console.log('  VITE_GOOGLE_CLIENT_ID:', clientId ? `✓ SET (${clientId.substring(0, 20)}...)` : '✗ EMPTY/MISSING');
-  console.log('  VITE_API_URL:', apiUrl ? `✓ SET (${apiUrl})` : '✗ EMPTY/MISSING');
-  console.log('  Build Mode:', import.meta.env.MODE);
-  console.log('  Production:', import.meta.env.PROD);
-  console.log('  Development:', import.meta.env.DEV);
-  console.log('  All VITE_ env keys:', Object.keys(import.meta.env).filter(k => k.startsWith('VITE_')));
-  
-  if (!clientId) {
-    console.error('❌ CRITICAL: Google Client ID is empty. Google OAuth will fail.');
-    alert('Warning: Google OAuth is not configured. Please check environment variables in Vercel dashboard.');
+
+  // Only log in development; keep production console pristine
+  if (import.meta.env.DEV) {
+    const apiUrl = import.meta.env.VITE_API_URL || '';
+    console.log('[Dutophy] VITE_GOOGLE_CLIENT_ID:', usingFallback ? 'using built-in default' : '✓ from env');
+    console.log('[Dutophy] VITE_API_URL:', apiUrl || 'using built-in default');
+    if (usingFallback) {
+      console.log('[Dutophy] Tip: set VITE_GOOGLE_CLIENT_ID in Vercel environment variables to use env-provided value.');
+    }
   }
-  
+
   return (
     <GoogleOAuthProvider clientId={clientId}>
       <App />

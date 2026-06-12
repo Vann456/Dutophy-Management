@@ -4,50 +4,26 @@ import CashFlowChart from './components/CashFlowChart';
 import QuickActions from './components/QuickActions';
 import RecentTransactions from './components/RecentTransactions';
 import ActiveBillsTable from './components/ActiveBillsTable'; // Import the new component
+import { fetchTransactions } from '../../api';
 
 const Dashboard = ({ user, onOpenAddTransaction }) => {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fungsi untuk me-load data transaksi dari backend dengan fallback parsing
+  // Load transactions using the shared api.js helper (respects VITE_API_URL)
   const loadTransactions = async () => {
-    const apiBase = (import.meta.env.VITE_API_URL || 'http://localhost:3001').trim() || 'http://localhost:3001';
-    const headers = {
-      'Content-Type': 'application/json',
-      ...(localStorage.getItem('token') || localStorage.getItem('dutophy_token') ? { Authorization: `Bearer ${localStorage.getItem('token') || localStorage.getItem('dutophy_token')}` } : {}),
-    };
-
-    const parseTransactions = (json) => {
-      if (Array.isArray(json)) return json;
-      if (Array.isArray(json.transactions)) return json.transactions;
-      if (Array.isArray(json.data)) return json.data;
-      return [];
-    };
-
-    const fetchFrom = async (path) => {
-      const response = await fetch(`${apiBase}${path}`, { headers });
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status} ${response.statusText}`);
-      }
-      return response.json();
-    };
-
     try {
       setLoading(true);
       setError(null);
 
-      let json = await fetchFrom('/api/transactions');
-      let rows = parseTransactions(json);
-
-      if (!rows.length && json && typeof json === 'object' && !Array.isArray(json)) {
-        // fallback to legacy endpoint if /api/transactions returns object payload
-        json = await fetchFrom('/transactions');
-        rows = parseTransactions(json);
-      }
+      const json = await fetchTransactions();
+      // Normalize: backend may return a plain array or a wrapped object
+      const rows = Array.isArray(json)
+        ? json
+        : (json?.transactions ?? json?.data ?? []);
 
       setTransactions(rows);
-      console.log(`✓ Dashboard: Loaded ${rows.length} transactions from ${Array.isArray(json) ? '/transactions' : '/api/transactions'}`);
     } catch (err) {
       console.error('❌ Failed to load dashboard transactions:', err);
       setError('Gagal memuat data transaksi. Silakan coba refresh halaman.');
@@ -65,7 +41,6 @@ const Dashboard = ({ user, onOpenAddTransaction }) => {
   // Listen for global transaction update events
   useEffect(() => {
     const handleTransactionUpdate = () => {
-      console.log('📊 Dashboard: Detected transaction update event, refreshing...');
       loadTransactions();
     };
 
@@ -74,7 +49,6 @@ const Dashboard = ({ user, onOpenAddTransaction }) => {
   }, []);
 
   const handleRefresh = async () => {
-    console.log('🔄 Dashboard: Manual refresh triggered');
     await loadTransactions();
   };
 
