@@ -53,8 +53,24 @@ const tokenStore = new Map();
 
 const createToken = () => `token-${crypto.randomBytes(16).toString('hex')}`;
 
-const hashPassword = (password) => crypto.createHash('sha256').update(password).digest('hex');
-const verifyPassword = (password, hash) => hashPassword(password) === hash;
+const hashPassword = (password) => {
+  if (!password) {
+    throw new Error('Password cannot be null or empty');
+  }
+  return crypto.createHash('sha256').update(password).digest('hex');
+};
+
+const verifyPassword = (password, hash) => {
+  if (!password || !hash) {
+    return false;
+  }
+  try {
+    return hashPassword(password) === hash;
+  } catch (err) {
+    console.error('Error in verifyPassword:', err);
+    return false;
+  }
+};
 
 const getUserFromToken = async (authorization) => {
   if (!authorization) return null;
@@ -158,20 +174,38 @@ app.post('/api/auth/login', async (c) => {
     const rows = await db.select().from(users).where(eq(users.username, username)).limit(1);
     const user = rows[0];
 
-    // Guard: Users with no password (Google OAuth) cannot log in with password
-    if (user && !user.password) {
-      return c.json({ error: 'Akun ini terdaftar menggunakan Google. Silakan login menggunakan tombol Google.' }, 403);
-    }
-
-    if (!user || !verifyPassword(password, user.password)) {
-      // Log failed login attempt
+    // First check if user exists
+    if (!user) {
+      console.log(`❌ User not found: ${username}`);
       const { ipAddress, userAgent } = extractClientInfo(c);
       await createAuditLog({
         username: username || 'unknown',
         action: 'LOGIN_FAILED',
         targetType: 'USER',
-        targetId: user?.id || null,
-        description: 'Failed login attempt',
+        targetId: null,
+        description: 'Failed login attempt - user not found',
+        ipAddress,
+        userAgent,
+      });
+      return c.json({ error: 'Invalid credentials' }, 401);
+    }
+
+    // Guard: Users with no password (Google OAuth) cannot log in with password
+    if (!user.password) {
+      console.log(`❌ Google OAuth user attempting password login: ${username}`);
+      return c.json({ error: 'Akun ini terdaftar menggunakan Google. Silakan login menggunakan tombol Google.' }, 403);
+    }
+
+    // Now safe to verify password (we know user exists and has a password)
+    if (!verifyPassword(password, user.password)) {
+      console.log(`❌ Invalid password for user: ${username}`);
+      const { ipAddress, userAgent } = extractClientInfo(c);
+      await createAuditLog({
+        username: username || 'unknown',
+        action: 'LOGIN_FAILED',
+        targetType: 'USER',
+        targetId: user.id,
+        description: 'Failed login attempt - invalid password',
         ipAddress,
         userAgent,
       });
@@ -225,51 +259,73 @@ app.post('/api/auth/login', async (c) => {
     });
   } catch (err) {
     console.error('❌ Login endpoint error:', err);
-    console.error('Error stack:', err.stack);
+    console.error('❌ Error name:', err.name);
+    console.error('❌ Error message:', err.message);
+    console.error('❌ Error stack:', err.stack);
+    
     return c.json({ 
+      success: false,
       error: 'Internal server error during authentication',
-      details: process.env.NODE_ENV === 'development' ? err.message : 'Please try again later'
+      message: err.message,
+      details: process.env.NODE_ENV === 'development' ? err.stack : undefined
     }, 500);
   }
 });
 
 app.post('/api/auth/register', async (c) => {
-  const body = await c.req.json();
-  const { username, password, name, email } = body;
+  try {
+    const body = await c.req.json();
+    const { username, password, name, email } = body;
 
-  if (!username || !password) {
-    return c.json({ error: 'Username dan password wajib diisi' }, 400);
+    if (!username || !password) {
+      return c.json({ error: 'Username dan password wajib diisi' }, 400);
+    }
+
+    console.log(`📝 Register attempt for user: ${username}`);
+
+    const existing = await db.select().from(users).where(eq(users.username, username)).limit(1);
+    if (existing.length > 0) {
+      return c.json({ error: 'Username sudah terdaftar' }, 409);
+    }
+
+    const newUser = {
+      username,
+      password: hashPassword(password),
+      role: 'Anggota',
+      name: name || username,
+      email: email || '',
+    };
+
+    const inserted = await db.insert(users).values(newUser).returning();
+    const createdUser = inserted[0];
+    const token = createToken();
+    tokenStore.set(token, createdUser.username);
+
+    console.log(`✅ User registered successfully: ${username}`);
+
+    return c.json({
+      success: true,
+      token,
+      user: {
+        id: createdUser.id,
+        username: createdUser.username,
+        role: createdUser.role,
+        name: createdUser.name,
+        email: createdUser.email || '',
+      },
+    });
+  } catch (err) {
+    console.error('❌ Register endpoint error:', err);
+    console.error('❌ Error message:', err.message);
+    console.error('❌ Error stack:', err.stack);
+    
+    return c.json({ 
+      success: false,
+      error: 'Internal server error during registration',
+      message: err.message,
+      details: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    }, 500);
   }
-
-  const existing = await db.select().from(users).where(eq(users.username, username)).limit(1);
-  if (existing.length > 0) {
-    return c.json({ error: 'Username sudah terdaftar' }, 409);
-  }
-
-  const newUser = {
-    username,
-    password: hashPassword(password),
-    role: 'Anggota',
-    name: name || username,
-    email: email || '',
-  };
-
-  const inserted = await db.insert(users).values(newUser).returning();
-  const createdUser = inserted[0];
-  const token = createToken();
-  tokenStore.set(token, createdUser.username);
-
-  return c.json({
-    success: true,
-    token,
-    user: {
-      id: createdUser.id,
-      username: createdUser.username,
-      role: createdUser.role,
-      name: createdUser.name,
-      email: createdUser.email || '',
-    },
-  });
 });
 
 app.get('/api/auth/me', async (c) => {
