@@ -179,7 +179,6 @@ export default function Login({ onLogin, onRegister, onGoogleLogin, error }) {
                 }}
                 theme="outline"
                 size="large"
-                width="100%"
                 text="signin_with"
                 shape="rectangular"
               />
