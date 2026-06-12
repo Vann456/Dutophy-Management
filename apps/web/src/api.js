@@ -59,6 +59,13 @@ export async function login({ username, password }) {
   });
 }
 
+export async function loginWithGoogle(credential) {
+  return apiFetch('/api/auth/google', {
+    method: 'POST',
+    body: JSON.stringify({ credential }),
+  });
+}
+
 export async function register({ username, password, name, email }) {
   return apiFetch('/api/auth/register', {
     method: 'POST',

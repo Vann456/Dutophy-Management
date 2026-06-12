@@ -10,8 +10,9 @@ import Dashboard from './pages/Dashboard/Dashboard';
 import Persetujuan from './pages/Persetujuan/Persetujuan';
 import Riwayat from './pages/Riwayat/Riwayat';
 import Statistik from './pages/Statistik/Statistik';
-import { fetchAuthMe, login, register, updateAvatar } from './api';
+import { fetchAuthMe, login, register, updateAvatar, loginWithGoogle } from './api';
 import { AnggotaProvider } from './lib/AnggotaContext';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 
 const pageTitles = {
   dashboard: 'Overview Keuangan',
@@ -136,6 +137,22 @@ function App() {
     }
   };
 
+  const handleGoogleLogin = async (credential) => {
+    try {
+      const response = await loginWithGoogle(credential);
+      const { token, user: authUser } = response;
+      localStorage.setItem('token', token);
+      localStorage.removeItem('dutophy_token');
+      setUser(authUser);
+      setIsAuthenticated(true);
+      setAuthError(null);
+      setActivePage('dashboard');
+    } catch (error) {
+      setAuthError(error.message || 'Login Google gagal');
+      throw error;
+    }
+  };
+
   const handleRegister = async ({ username, password, name, email }) => {
     try {
       const response = await register({ username, password, name, email });
@@ -200,7 +217,44 @@ function App() {
   }
 
   if (!isAuthenticated) {
-    return <Login onLogin={handleLogin} onRegister={handleRegister} error={authError} />;
+    return <Login onLogin={handleLogin} onRegister={handleRegister} onGoogleLogin={handleGoogleLogin} error={authError} />;
+  }
+
+  // Pending role: show restricted screen instead of full dashboard
+  if (user?.role === 'pending') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-surface p-4">
+        <div className="w-full max-w-md bg-surface-container-low border border-outline-variant rounded-xl p-8 text-center shadow-2xl">
+          <div className="w-16 h-16 rounded-full bg-amber-900/30 flex items-center justify-center mx-auto mb-4">
+            <span className="material-symbols-outlined text-amber-400 text-3xl">hourglass_top</span>
+          </div>
+          <h2 className="font-headline-md text-headline-md font-bold text-on-surface mb-2">Menunggu Persetujuan</h2>
+          <p className="font-body-md text-body-md text-on-surface-variant mb-4">
+            Akun Anda telah berhasil dibuat melalui Google. Silakan hubungi Ketua atau Admin untuk menyetujui akun Anda sebelum dapat mengakses dashboard.
+          </p>
+          <div className="bg-surface-container rounded-lg p-sm border border-outline-variant">
+            <p className="font-label-sm text-label-sm text-on-surface-variant">
+              Email: <span className="font-semibold text-on-surface">{user?.email}</span>
+            </p>
+            <p className="font-label-sm text-label-sm text-on-surface-variant">
+              Nama: <span className="font-semibold text-on-surface">{user?.name}</span>
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              localStorage.removeItem('token');
+              localStorage.removeItem('dutophy_token');
+              setIsAuthenticated(false);
+              setUser(null);
+            }}
+            className="mt-6 w-full rounded-xl bg-primary py-3 text-sm font-semibold text-on-primary hover:bg-primary/90 transition-colors"
+          >
+            Keluar
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -240,4 +294,11 @@ function App() {
   );
 }
 
-export default App;
+// Wrap the entire App with GoogleOAuthProvider
+const AppWithGoogle = () => (
+  <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || ''}>
+    <App />
+  </GoogleOAuthProvider>
+);
+
+export default AppWithGoogle;

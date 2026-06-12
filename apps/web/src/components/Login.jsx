@@ -1,6 +1,7 @@
 import { useState } from 'react';
+import { GoogleLogin } from '@react-oauth/google';
 
-export default function Login({ onLogin, onRegister, error }) {
+export default function Login({ onLogin, onRegister, onGoogleLogin, error }) {
   const [mode, setMode] = useState('login');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -159,6 +160,31 @@ export default function Login({ onLogin, onRegister, error }) {
             <span>{submitting ? 'Memproses...' : mode === 'login' ? 'Masuk' : 'Daftar'}</span>
             <span className="material-symbols-outlined transition-transform duration-300 group-hover:translate-x-1" style={{ fontSize: '18px' }}>arrow_forward</span>
           </button>
+
+          {mode === 'login' && onGoogleLogin && (
+            <>
+              <div className="flex items-center gap-sm my-sm">
+                <div className="flex-1 h-px bg-outline-variant"></div>
+                <span className="font-label-sm text-label-sm text-on-surface-variant">atau</span>
+                <div className="flex-1 h-px bg-outline-variant"></div>
+              </div>
+              <GoogleLogin
+                onSuccess={(credentialResponse) => {
+                  if (credentialResponse.credential) {
+                    onGoogleLogin(credentialResponse.credential);
+                  }
+                }}
+                onError={() => {
+                  setLocalError('Login Google gagal. Silakan coba lagi.');
+                }}
+                theme="outline"
+                size="large"
+                width="100%"
+                text="signin_with"
+                shape="rectangular"
+              />
+            </>
+          )}
         </form>
         
         <footer className="mt-lg pt-md border-t border-outline-variant/30 text-center">
