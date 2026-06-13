@@ -87,21 +87,14 @@ const getUserFromToken = async (authorization) => {
   if (!authorization) return null;
   const token = authorization.startsWith('Bearer ') ? authorization.slice(7) : authorization;
   const username = tokenStore.get(token);
-  
-  // If token not found in in-memory store, try direct DB lookup as fallback
-  // This handles cases where server was restarted and tokenStore was cleared
+
+  // Token not found in in-memory store — reject instead of falling back to first user.
+  // The insecure fallback was removed: it granted access to row[0] after a server restart,
+  // effectively bypassing authentication entirely.
   if (!username) {
-    console.log('Token not found in store, attempting direct lookup...');
-    const rows = await db.select().from(users).limit(1);
-    if (rows.length > 0) {
-      // As a last resort, trust any valid session token for any existing user
-      // This is a temporary bridge; token should be re-issued on next login
-      console.log('Fallback: granting access to first user as session recovery');
-      return rows[0];
-    }
     return null;
   }
-  
+
   const rows = await db.select().from(users).where(eq(users.username, username)).limit(1);
   return rows[0] || null;
 };
@@ -632,61 +625,71 @@ app.post('/api/auth/google', async (c) => {
 });
 
 app.patch('/api/auth/avatar', async (c) => {
-  const user = await getUserFromToken(c.req.header('authorization'));
-  if (!user) {
-    return c.json({ error: 'Unauthorized' }, 401);
+  try {
+    const user = await getUserFromToken(c.req.header('authorization'));
+    if (!user) {
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    const body = await c.req.json();
+    const { avatarUrl } = body;
+    if (!avatarUrl) {
+      return c.json({ error: 'avatarUrl is required' }, 400);
+    }
+    await db.update(users).set({ avatarUrl }).where(eq(users.id, user.id));
+    const { ipAddress, userAgent } = extractClientInfo(c);
+    await createAuditLog({
+      userId: user.id,
+      username: user.username,
+      action: 'SETTINGS_CHANGE',
+      targetType: 'USER',
+      targetId: user.id,
+      description: `Updated profile avatar`,
+      ipAddress, userAgent,
+    });
+    return c.json({ success: true, avatarUrl });
+  } catch (err) {
+    console.error('Error in PATCH /api/auth/avatar:', err);
+    return c.json({ error: err.message || 'Failed to update avatar' }, 500);
   }
-  const body = await c.req.json();
-  const { avatarUrl } = body;
-  if (!avatarUrl) {
-    return c.json({ error: 'avatarUrl is required' }, 400);
-  }
-  await db.update(users).set({ avatarUrl }).where(eq(users.id, user.id));
-  const { ipAddress, userAgent } = extractClientInfo(c);
-  await createAuditLog({
-    userId: user.id,
-    username: user.username,
-    action: 'SETTINGS_CHANGE',
-    targetType: 'USER',
-    targetId: user.id,
-    description: `Updated profile avatar`,
-    ipAddress, userAgent,
-  });
-  return c.json({ success: true, avatarUrl });
 });
 
 app.patch('/api/auth/change-password', async (c) => {
-  const user = await getUserFromToken(c.req.header('authorization'));
-  if (!user) {
-    return c.json({ error: 'Unauthorized' }, 401);
+  try {
+    const user = await getUserFromToken(c.req.header('authorization'));
+    if (!user) {
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    const body = await c.req.json();
+    const { currentPassword, newPassword } = body;
+    if (!currentPassword || !newPassword) {
+      return c.json({ error: 'Password lama dan password baru wajib diisi' }, 400);
+    }
+    if (newPassword.length < 6) {
+      return c.json({ error: 'Password baru minimal 6 karakter' }, 400);
+    }
+    // Verify current password
+    const rows = await db.select().from(users).where(eq(users.id, user.id)).limit(1);
+    const dbUser = rows[0];
+    if (!dbUser || !verifyPassword(currentPassword, dbUser.password)) {
+      return c.json({ error: 'Password lama tidak sesuai' }, 400);
+    }
+    // Update password
+    await db.update(users).set({ password: hashPassword(newPassword) }).where(eq(users.id, user.id));
+    const { ipAddress, userAgent } = extractClientInfo(c);
+    await createAuditLog({
+      userId: user.id,
+      username: user.username,
+      action: 'SETTINGS_CHANGE',
+      targetType: 'USER',
+      targetId: user.id,
+      description: `Changed own password`,
+      ipAddress, userAgent,
+    });
+    return c.json({ success: true, message: 'Password berhasil diperbarui' });
+  } catch (err) {
+    console.error('Error in PATCH /api/auth/change-password:', err);
+    return c.json({ error: err.message || 'Failed to change password' }, 500);
   }
-  const body = await c.req.json();
-  const { currentPassword, newPassword } = body;
-  if (!currentPassword || !newPassword) {
-    return c.json({ error: 'Password lama dan password baru wajib diisi' }, 400);
-  }
-  if (newPassword.length < 6) {
-    return c.json({ error: 'Password baru minimal 6 karakter' }, 400);
-  }
-  // Verify current password
-  const rows = await db.select().from(users).where(eq(users.id, user.id)).limit(1);
-  const dbUser = rows[0];
-  if (!dbUser || !verifyPassword(currentPassword, dbUser.password)) {
-    return c.json({ error: 'Password lama tidak sesuai' }, 400);
-  }
-  // Update password
-  await db.update(users).set({ password: hashPassword(newPassword) }).where(eq(users.id, user.id));
-  const { ipAddress, userAgent } = extractClientInfo(c);
-  await createAuditLog({
-    userId: user.id,
-    username: user.username,
-    action: 'SETTINGS_CHANGE',
-    targetType: 'USER',
-    targetId: user.id,
-    description: `Changed own password`,
-    ipAddress, userAgent,
-  });
-  return c.json({ success: true, message: 'Password berhasil diperbarui' });
 });
 
 app.get('/transactions', async (c) => {
@@ -700,32 +703,45 @@ app.get('/api/transactions', async (c) => {
 });
 
 app.post('/transactions', async (c) => {
-  const body = await c.req.json();
-  console.log('Incoming POST /transactions:', body);
-  const { description, amount, type } = body;
-  if (!description || amount == null || !type) {
-    return c.json({ error: 'description, amount and type are required' }, 400);
+  try {
+    const body = await c.req.json();
+    const { description, amount, type } = body;
+    if (!description || amount == null || !type) {
+      return c.json({ error: 'description, amount and type are required' }, 400);
+    }
+
+    // Guard against negative/zero amounts
+    const parsedAmount = Number(amount);
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+      return c.json({ error: 'amount must be a positive number' }, 400);
+    }
+
+    const user = await getUserFromToken(c.req.header('authorization'));
+    const res = await db.insert(transactions).values({
+      description: String(description).trim(),
+      amount: parsedAmount,
+      type,
+    }).returning();
+    const transaction = res[0];
+
+    const { ipAddress, userAgent } = extractClientInfo(c);
+    await createAuditLog({
+      userId: user?.id || null,
+      username: user?.username || 'system',
+      action: 'CREATE_TRANSACTION',
+      targetType: 'TRANSACTION',
+      targetId: transaction.id,
+      afterValue: transaction,
+      description: `Created transaction: ${description} (Rp ${amount})`,
+      ipAddress,
+      userAgent,
+    });
+
+    return c.json(transaction);
+  } catch (err) {
+    console.error('Error in POST /transactions:', err);
+    return c.json({ error: err.message || 'Failed to create transaction' }, 500);
   }
-
-  const user = await getUserFromToken(c.req.header('authorization'));
-  const res = await db.insert(transactions).values({ description, amount: Number(amount), type }).returning();
-  const transaction = res[0];
-
-  // Log transaction creation
-  const { ipAddress, userAgent } = extractClientInfo(c);
-  await createAuditLog({
-    userId: user?.id || null,
-    username: user?.username || 'system',
-    action: 'CREATE_TRANSACTION',
-    targetType: 'TRANSACTION',
-    targetId: transaction.id,
-    afterValue: transaction,
-    description: `Created transaction: ${description} (Rp ${amount})`,
-    ipAddress,
-    userAgent,
-  });
-
-  return c.json(transaction);
 });
 
 app.post('/api/transactions', async (c) => {
@@ -749,10 +765,29 @@ app.post('/api/transactions', async (c) => {
     return c.json({ error: 'description, amount and type are required' }, 400);
   }
 
+  // Input validation: amount must be a positive integer
+  const parsedAmount = Number(amount);
+  if (!Number.isFinite(parsedAmount) || parsedAmount <= 0 || !Number.isInteger(parsedAmount)) {
+    return c.json({ error: 'amount must be a positive integer' }, 400);
+  }
+
+  // Input sanitization: cap string lengths to prevent DB abuse
+  const MAX_DESC_LEN = 500;
+  const MAX_CAT_LEN  = 100;
+  if (typeof description === 'string' && description.trim().length === 0) {
+    return c.json({ error: 'description cannot be empty' }, 400);
+  }
+  if (typeof description === 'string' && description.length > MAX_DESC_LEN) {
+    return c.json({ error: `description exceeds maximum length of ${MAX_DESC_LEN} characters` }, 400);
+  }
+  if (typeof category === 'string' && category.length > MAX_CAT_LEN) {
+    return c.json({ error: `category exceeds maximum length of ${MAX_CAT_LEN} characters` }, 400);
+  }
+
   const user = await getUserFromToken(c.req.header('authorization'));
   const payload = {
-    description,
-    amount: Number(amount),
+    description: String(description).trim(),
+    amount: parsedAmount,
     type,
     category,
     status: status || 'Pending',
@@ -802,53 +837,57 @@ app.post('/api/transactions', async (c) => {
 });
 
 app.patch('/api/transactions/:id', async (c) => {
-  const id = Number(c.req.param('id'));
-  const body = await c.req.json();
-  if (!id) return c.json({ error: 'invalid id' }, 400);
+  try {
+    const id = Number(c.req.param('id'));
+    const body = await c.req.json();
+    if (!id) return c.json({ error: 'invalid id' }, 400);
 
-  // RBAC: Only admin, ketua and wakil can approve/reject (change status)
-  const currentUser = await getUserFromToken(c.req.header('authorization'));
-  const canApprove = currentUser?.username === 'dutophy@gmail.com' || ['ketua', 'wakil'].includes(currentUser?.role);
-  if (body.status && !canApprove) {
-    return c.json({ error: 'Hanya Admin, Ketua, dan Wakil yang dapat menyetujui atau menolak transaksi.' }, 403);
+    // RBAC: Only admin, ketua and wakil can approve/reject (change status)
+    const currentUser = await getUserFromToken(c.req.header('authorization'));
+    const canApprove = currentUser?.username === 'dutophy@gmail.com' || ['ketua', 'wakil'].includes(currentUser?.role);
+    if (body.status && !canApprove) {
+      return c.json({ error: 'Hanya Admin, Ketua, dan Wakil yang dapat menyetujui atau menolak transaksi.' }, 403);
+    }
+
+    // Get before value
+    const beforeRows = await db.select().from(transactions).where(eq(transactions.id, id)).limit(1);
+    const beforeTransaction = beforeRows[0];
+
+    const values = {};
+    if (body.description !== undefined) values.description = body.description;
+    if (body.amount !== undefined) values.amount = Number(body.amount);
+    if (body.type !== undefined) values.type = body.type;
+    if (body.category !== undefined) values.category = body.category;
+    if (body.status !== undefined) values.status = body.status;
+    if (body.rejectionReason !== undefined) values.rejectionReason = body.rejectionReason;
+    
+    if (!Object.keys(values).length) {
+      return c.json({ error: 'No valid fields to update' }, 400);
+    }
+
+    const updated = await db.update(transactions).set(values).where(eq(transactions.id, id)).returning();
+    const afterTransaction = updated[0];
+
+    // Log transaction update (reuse currentUser already fetched above for RBAC check)
+    const { ipAddress, userAgent } = extractClientInfo(c);
+    await createAuditLog({
+      userId: currentUser?.id || null,
+      username: currentUser?.username || 'system',
+      action: 'UPDATE_TRANSACTION',
+      targetType: 'TRANSACTION',
+      targetId: id,
+      beforeValue: beforeTransaction,
+      afterValue: afterTransaction,
+      description: `Updated transaction: ${afterTransaction.description}`,
+      ipAddress,
+      userAgent,
+    });
+
+    return c.json(updated);
+  } catch (err) {
+    console.error('Error in PATCH /api/transactions/:id:', err);
+    return c.json({ error: err.message || 'Failed to update transaction' }, 500);
   }
-
-  // Get before value
-  const beforeRows = await db.select().from(transactions).where(eq(transactions.id, id)).limit(1);
-  const beforeTransaction = beforeRows[0];
-
-  const values = {};
-  if (body.description !== undefined) values.description = body.description;
-  if (body.amount !== undefined) values.amount = Number(body.amount);
-  if (body.type !== undefined) values.type = body.type;
-  if (body.category !== undefined) values.category = body.category;
-  if (body.status !== undefined) values.status = body.status;
-  if (body.rejectionReason !== undefined) values.rejectionReason = body.rejectionReason;
-  
-  if (!Object.keys(values).length) {
-    return c.json({ error: 'No valid fields to update' }, 400);
-  }
-
-  const updated = await db.update(transactions).set(values).where(eq(transactions.id, id)).returning();
-  const afterTransaction = updated[0];
-
-  // Log transaction update
-  const user = await getUserFromToken(c.req.header('authorization'));
-  const { ipAddress, userAgent } = extractClientInfo(c);
-  await createAuditLog({
-    userId: user?.id || null,
-    username: user?.username || 'system',
-    action: 'UPDATE_TRANSACTION',
-    targetType: 'TRANSACTION',
-    targetId: id,
-    beforeValue: beforeTransaction,
-    afterValue: afterTransaction,
-    description: `Updated transaction: ${afterTransaction.description}`,
-    ipAddress,
-    userAgent,
-  });
-
-  return c.json(updated);
 });
 
 // Members CRUD
@@ -858,97 +897,112 @@ app.get('/api/members', async (c) => {
 });
 
 app.post('/api/members', async (c) => {
-  const body = await c.req.json();
-  const { nama, kelas, status_kas, keterangan } = body;
-  if (!nama) return c.json({ error: 'nama is required' }, 400);
+  try {
+    const body = await c.req.json();
+    const { nama, kelas, status_kas, keterangan } = body;
+    if (!nama) return c.json({ error: 'nama is required' }, 400);
 
-  const user = await getUserFromToken(c.req.header('authorization'));
-  const res = await db.insert(members).values({ nama, kelas, status_kas, keterangan }).returning();
-  const member = res[0];
+    const user = await getUserFromToken(c.req.header('authorization'));
+    const res = await db.insert(members).values({ nama, kelas, status_kas, keterangan }).returning();
+    const member = res[0];
 
-  // Log member creation
-  const { ipAddress, userAgent } = extractClientInfo(c);
-  await createAuditLog({
-    userId: user?.id || null,
-    username: user?.username || 'system',
-    action: 'CREATE_MEMBER',
-    targetType: 'MEMBER',
-    targetId: member.id,
-    afterValue: member,
-    description: `Added member: ${nama}`,
-    ipAddress,
-    userAgent,
-  });
+    // Log member creation
+    const { ipAddress, userAgent } = extractClientInfo(c);
+    await createAuditLog({
+      userId: user?.id || null,
+      username: user?.username || 'system',
+      action: 'CREATE_MEMBER',
+      targetType: 'MEMBER',
+      targetId: member.id,
+      afterValue: member,
+      description: `Added member: ${nama}`,
+      ipAddress,
+      userAgent,
+    });
 
-  return c.json(res);
+    return c.json(res);
+  } catch (err) {
+    console.error('Error in POST /api/members:', err);
+    return c.json({ error: err.message || 'Failed to create member' }, 500);
+  }
 });
 
 app.patch('/api/members/:id', async (c) => {
-  const id = Number(c.req.param('id'));
-  const body = await c.req.json();
-  if (!id) return c.json({ error: 'invalid id' }, 400);
+  try {
+    const id = Number(c.req.param('id'));
+    const body = await c.req.json();
+    if (!id) return c.json({ error: 'invalid id' }, 400);
 
-  // Get before value
-  const beforeRows = await db.select().from(members).where(eq(members.id, id)).limit(1);
-  const beforeMember = beforeRows[0];
+    // Get before value
+    const beforeRows = await db.select().from(members).where(eq(members.id, id)).limit(1);
+    const beforeMember = beforeRows[0];
 
-  const values = {};
-  if (body.nama !== undefined) values.nama = body.nama;
-  if (body.kelas !== undefined) values.kelas = body.kelas;
-  if (body.status_kas !== undefined) values.status_kas = body.status_kas;
-  if (body.keterangan !== undefined) values.keterangan = body.keterangan;
-  if (!Object.keys(values).length) {
-    return c.json({ error: 'No valid fields to update' }, 400);
+    const values = {};
+    if (body.nama !== undefined) values.nama = body.nama;
+    if (body.kelas !== undefined) values.kelas = body.kelas;
+    if (body.status_kas !== undefined) values.status_kas = body.status_kas;
+    if (body.keterangan !== undefined) values.keterangan = body.keterangan;
+    if (!Object.keys(values).length) {
+      return c.json({ error: 'No valid fields to update' }, 400);
+    }
+
+    const updated = await db.update(members).set(values).where(eq(members.id, id)).returning();
+    const afterMember = updated[0];
+
+    // Log member update
+    const user = await getUserFromToken(c.req.header('authorization'));
+    const { ipAddress, userAgent } = extractClientInfo(c);
+    await createAuditLog({
+      userId: user?.id || null,
+      username: user?.username || 'system',
+      action: 'EDIT_MEMBER',
+      targetType: 'MEMBER',
+      targetId: id,
+      beforeValue: beforeMember,
+      afterValue: afterMember,
+      description: `Updated member: ${afterMember.nama}`,
+      ipAddress,
+      userAgent,
+    });
+
+    return c.json(updated);
+  } catch (err) {
+    console.error('Error in PATCH /api/members/:id:', err);
+    return c.json({ error: err.message || 'Failed to update member' }, 500);
   }
-
-  const updated = await db.update(members).set(values).where(eq(members.id, id)).returning();
-  const afterMember = updated[0];
-
-  // Log member update
-  const user = await getUserFromToken(c.req.header('authorization'));
-  const { ipAddress, userAgent } = extractClientInfo(c);
-  await createAuditLog({
-    userId: user?.id || null,
-    username: user?.username || 'system',
-    action: 'EDIT_MEMBER',
-    targetType: 'MEMBER',
-    targetId: id,
-    beforeValue: beforeMember,
-    afterValue: afterMember,
-    description: `Updated member: ${afterMember.nama}`,
-    ipAddress,
-    userAgent,
-  });
-
-  return c.json(updated);
 });
 
 app.delete('/api/members/:id', async (c) => {
-  const id = Number(c.req.param('id'));
-  if (!id) return c.json({ error: 'invalid id' }, 400);
+  try {
+    const id = Number(c.req.param('id'));
+    if (!id) return c.json({ error: 'invalid id' }, 400);
 
-  // Get member before deletion for audit
-  const memberRows = await db.select().from(members).where(eq(members.id, id)).limit(1);
-  const member = memberRows[0];
+    // Get member before deletion for audit
+    const memberRows = await db.select().from(members).where(eq(members.id, id)).limit(1);
+    const member = memberRows[0];
 
-  await db.delete(members).where(eq(members.id, id));
+    await db.delete(members).where(eq(members.id, id));
 
-  // Log member deletion
-  const user = await getUserFromToken(c.req.header('authorization'));
-  const { ipAddress, userAgent } = extractClientInfo(c);
-  await createAuditLog({
-    userId: user?.id || null,
-    username: user?.username || 'system',
-    action: 'DELETE_MEMBER',
-    targetType: 'MEMBER',
-    targetId: id,
-    beforeValue: member,
-    description: `Deleted member: ${member?.nama || 'Unknown'}`,
-    ipAddress,
-    userAgent,
-  });
+    // Log member deletion
+    const user = await getUserFromToken(c.req.header('authorization'));
+    const { ipAddress, userAgent } = extractClientInfo(c);
+    await createAuditLog({
+      userId: user?.id || null,
+      username: user?.username || 'system',
+      action: 'DELETE_MEMBER',
+      targetType: 'MEMBER',
+      targetId: id,
+      beforeValue: member,
+      description: `Deleted member: ${member?.nama || 'Unknown'}`,
+      ipAddress,
+      userAgent,
+    });
 
-  return c.json({ ok: true });
+    return c.json({ ok: true });
+  } catch (err) {
+    console.error('Error in DELETE /api/members/:id:', err);
+    return c.json({ error: err.message || 'Failed to delete member' }, 500);
+  }
 });
 
 // Attendance
@@ -958,12 +1012,17 @@ app.get('/api/attendance', async (c) => {
 });
 
 app.patch('/api/attendance/:id', async (c) => {
-  const id = Number(c.req.param('id'));
-  const body = await c.req.json();
-  const { status } = body;
-  if (!id || !status) return c.json({ error: 'id and status required' }, 400);
-  const res = await db.update(attendance).set({ status }).where(eq(attendance.id, id)).returning();
-  return c.json(res);
+  try {
+    const id = Number(c.req.param('id'));
+    const body = await c.req.json();
+    const { status } = body;
+    if (!id || !status) return c.json({ error: 'id and status required' }, 400);
+    const res = await db.update(attendance).set({ status }).where(eq(attendance.id, id)).returning();
+    return c.json(res);
+  } catch (err) {
+    console.error('Error in PATCH /api/attendance/:id:', err);
+    return c.json({ error: err.message || 'Failed to update attendance' }, 500);
+  }
 });
 
 app.post('/api/attendance', async (c) => {
@@ -1134,73 +1193,92 @@ app.get('/api/approvals', async (c) => {
 });
 
 app.post('/api/approvals', async (c) => {
-  const body = await c.req.json();
-  const { deskripsi, kategori, tipe, nominal, diajukan_oleh, bukti_transfer } = body;
-  if (!deskripsi || !tipe || !nominal) return c.json({ error: 'deskripsi, tipe and nominal required' }, 400);
+  try {
+    const body = await c.req.json();
+    const { deskripsi, kategori, tipe, nominal, diajukan_oleh, bukti_transfer } = body;
+    if (!deskripsi || !tipe || !nominal) return c.json({ error: 'deskripsi, tipe and nominal required' }, 400);
 
-  const user = await getUserFromToken(c.req.header('authorization'));
-  const res = await db.insert(approvals).values({ deskripsi, kategori, tipe, nominal: Number(nominal), diajukan_oleh, bukti_transfer }).returning();
-  const approval = res[0];
+    const user = await getUserFromToken(c.req.header('authorization'));
+    const res = await db.insert(approvals).values({ deskripsi, kategori, tipe, nominal: Number(nominal), diajukan_oleh, bukti_transfer }).returning();
+    const approval = res[0];
 
-  // Log approval creation
-  const { ipAddress, userAgent } = extractClientInfo(c);
-  await createAuditLog({
-    userId: user?.id || null,
-    username: user?.username || 'system',
-    action: 'CREATE_APPROVAL',
-    targetType: 'APPROVAL',
-    targetId: approval.id,
-    afterValue: approval,
-    description: `Created approval: ${deskripsi} (Rp ${nominal})`,
-    ipAddress,
-    userAgent,
-  });
+    // Log approval creation
+    const { ipAddress, userAgent } = extractClientInfo(c);
+    await createAuditLog({
+      userId: user?.id || null,
+      username: user?.username || 'system',
+      action: 'CREATE_APPROVAL',
+      targetType: 'APPROVAL',
+      targetId: approval.id,
+      afterValue: approval,
+      description: `Created approval: ${deskripsi} (Rp ${nominal})`,
+      ipAddress,
+      userAgent,
+    });
 
-  return c.json(res);
+    return c.json(res);
+  } catch (err) {
+    console.error('Error in POST /api/approvals:', err);
+    return c.json({ error: err.message || 'Failed to create approval' }, 500);
+  }
 });
 
 app.patch('/api/approvals/:id', async (c) => {
-  const id = Number(c.req.param('id'));
-  const body = await c.req.json();
-  const { status } = body;
-  if (!id || !status) return c.json({ error: 'id and status required' }, 400);
-
-  // Get before value
-  const beforeRows = await db.select().from(approvals).where(eq(approvals.id, id)).limit(1);
-  const beforeApproval = beforeRows[0];
-
-  const updated = await db.update(approvals).set({ status }).where(eq(approvals.id, id)).returning();
-  const afterApproval = updated[0];
-
   try {
-    const approval = afterApproval;
-    if (approval && approval.status === 'Approved') {
-      const description = approval.deskripsi || `Approval #${approval.id}`;
-      const amount = Number(approval.nominal) || 0;
-      const type = approval.tipe === 'Pemasukan' ? 'Pemasukan' : 'Pengeluaran';
-      await db.insert(transactions).values({ description, amount, type }).returning();
+    const id = Number(c.req.param('id'));
+    const body = await c.req.json();
+    const { status } = body;
+    if (!id || !status) return c.json({ error: 'id and status required' }, 400);
+
+    // Get before value
+    const beforeRows = await db.select().from(approvals).where(eq(approvals.id, id)).limit(1);
+    const beforeApproval = beforeRows[0];
+
+    const updated = await db.update(approvals).set({ status }).where(eq(approvals.id, id)).returning();
+    const afterApproval = updated[0];
+
+    try {
+      const approval = afterApproval;
+      if (approval && approval.status === 'Approved') {
+        const description = approval.deskripsi || `Approval #${approval.id}`;
+        const amount = Number(approval.nominal) || 0;
+        // tipe field can be 'Pemasukan', 'Pengeluaran', or legacy values
+        const type = approval.tipe === 'Pengeluaran' ? 'Pengeluaran' : 'Pemasukan';
+        if (amount > 0) {
+          await db.insert(transactions).values({
+            description,
+            amount,
+            type,
+            category: approval.kategori || 'Persetujuan',
+            status: 'Approved',
+          }).returning();
+        }
+      }
+    } catch (err) {
+      console.error('Error creating transaction for approval:', err);
     }
+
+    // Log approval status change
+    const user = await getUserFromToken(c.req.header('authorization'));
+    const { ipAddress, userAgent } = extractClientInfo(c);
+    await createAuditLog({
+      userId: user?.id || null,
+      username: user?.username || 'system',
+      action: 'APPROVE_EXPENSE',
+      targetType: 'APPROVAL',
+      targetId: id,
+      beforeValue: beforeApproval,
+      afterValue: afterApproval,
+      description: `Changed approval status to: ${status}`,
+      ipAddress,
+      userAgent,
+    });
+
+    return c.json(updated);
   } catch (err) {
-    console.error('Error creating transaction for approval:', err);
+    console.error('Error in PATCH /api/approvals/:id:', err);
+    return c.json({ error: err.message || 'Failed to update approval' }, 500);
   }
-
-  // Log approval status change
-  const user = await getUserFromToken(c.req.header('authorization'));
-  const { ipAddress, userAgent } = extractClientInfo(c);
-  await createAuditLog({
-    userId: user?.id || null,
-    username: user?.username || 'system',
-    action: 'APPROVE_EXPENSE',
-    targetType: 'APPROVAL',
-    targetId: id,
-    beforeValue: beforeApproval,
-    afterValue: afterApproval,
-    description: `Changed approval status to: ${status}`,
-    ipAddress,
-    userAgent,
-  });
-
-  return c.json(updated);
 });
 
 // Audit Logs - GET with filters (Can view audit logs: admin, ketua, wakil)
@@ -1312,149 +1390,169 @@ app.get('/api/admin/users', async (c) => {
 });
 
 app.post('/api/admin/users', async (c) => {
-  const currentUser = await getUserFromToken(c.req.header('authorization'));
-  if (!hasFullAccess(currentUser)) {
-    return c.json({ error: 'Unauthorized: Admin, Ketua, or Wakil privileges required.' }, 403);
-  }
-  const body = await c.req.json();
-  const { name, email, role } = body;
-  if (!name || !email || !role) {
-    return c.json({ error: 'name, email, and role are required' }, 400);
-  }
-  // Check for duplicate email
-  const existingEmail = await db.select().from(users).where(eq(users.email, email)).limit(1);
-  if (existingEmail.length > 0) {
-    return c.json({ error: 'Email already registered' }, 400);
-  }
-  // Generate username from email and default password
-  const username = email.split('@')[0];
-  const defaultPassword = 'Dubes2026!';
-  const inserted = await db.insert(users).values({
-    username,
-    password: hashPassword(defaultPassword),
-    name,
-    email,
-    role,
-    status: 'active',
-  }).returning();
-  const newUser = inserted[0];
+  try {
+    const currentUser = await getUserFromToken(c.req.header('authorization'));
+    if (!hasFullAccess(currentUser)) {
+      return c.json({ error: 'Unauthorized: Admin, Ketua, or Wakil privileges required.' }, 403);
+    }
+    const body = await c.req.json();
+    const { name, email, role } = body;
+    if (!name || !email || !role) {
+      return c.json({ error: 'name, email, and role are required' }, 400);
+    }
+    // Check for duplicate email
+    const existingEmail = await db.select().from(users).where(eq(users.email, email)).limit(1);
+    if (existingEmail.length > 0) {
+      return c.json({ error: 'Email already registered' }, 400);
+    }
+    // Generate username from email and default password
+    const username = email.split('@')[0];
+    const defaultPassword = 'Dubes2026!';
+    const inserted = await db.insert(users).values({
+      username,
+      password: hashPassword(defaultPassword),
+      name,
+      email,
+      role,
+      status: 'active',
+    }).returning();
+    const newUser = inserted[0];
 
-  const { ipAddress, userAgent } = extractClientInfo(c);
-  await createAuditLog({
-    userId: currentUser.id,
-    username: currentUser.username,
-    action: 'CREATE_USER',
-    targetType: 'USER',
-    targetId: newUser.id,
-    afterValue: { ...newUser, password: '[REDACTED]' },
-    description: `Created user: ${name} (${role})`,
-    ipAddress, userAgent,
-  });
+    const { ipAddress, userAgent } = extractClientInfo(c);
+    await createAuditLog({
+      userId: currentUser.id,
+      username: currentUser.username,
+      action: 'CREATE_USER',
+      targetType: 'USER',
+      targetId: newUser.id,
+      afterValue: { ...newUser, password: '[REDACTED]' },
+      description: `Created user: ${name} (${role})`,
+      ipAddress, userAgent,
+    });
 
-  return c.json({
-    success: true,
-    data: { ...newUser, password: '[REDACTED]', temporaryPassword: defaultPassword },
-  });
+    return c.json({
+      success: true,
+      data: { ...newUser, password: '[REDACTED]', temporaryPassword: defaultPassword },
+    });
+  } catch (err) {
+    console.error('Error in POST /api/admin/users:', err);
+    return c.json({ error: err.message || 'Failed to create user' }, 500);
+  }
 });
 
 app.patch('/api/admin/users/:id/role', async (c) => {
-  const currentUser = await getUserFromToken(c.req.header('authorization'));
-  if (!hasFullAccess(currentUser)) {
-    return c.json({ error: 'Unauthorized: Admin, Ketua, or Wakil privileges required.' }, 403);
+  try {
+    const currentUser = await getUserFromToken(c.req.header('authorization'));
+    if (!hasFullAccess(currentUser)) {
+      return c.json({ error: 'Unauthorized: Admin, Ketua, or Wakil privileges required.' }, 403);
+    }
+    const id = Number(c.req.param('id'));
+    const body = await c.req.json();
+    const { role } = body;
+    if (!id || !role) return c.json({ error: 'id and role required' }, 400);
+    if (id === currentUser.id) return c.json({ error: 'Cannot change your own role' }, 400);
+
+    const beforeRows = await db.select().from(users).where(eq(users.id, id)).limit(1);
+    const before = beforeRows[0];
+    if (!before) return c.json({ error: 'User not found' }, 404);
+
+    const updated = await db.update(users).set({ role }).where(eq(users.id, id)).returning();
+
+    const { ipAddress, userAgent } = extractClientInfo(c);
+    await createAuditLog({
+      userId: currentUser.id,
+      username: currentUser.username,
+      action: 'ROLE_CHANGE',
+      targetType: 'USER',
+      targetId: id,
+      beforeValue: before,
+      afterValue: updated[0],
+      description: `Changed ${before.name} role from ${before.role} to ${role}`,
+      ipAddress, userAgent,
+    });
+
+    return c.json({ success: true, data: updated[0] });
+  } catch (err) {
+    console.error('Error in PATCH /api/admin/users/:id/role:', err);
+    return c.json({ error: err.message || 'Failed to update role' }, 500);
   }
-  const id = Number(c.req.param('id'));
-  const body = await c.req.json();
-  const { role } = body;
-  if (!id || !role) return c.json({ error: 'id and role required' }, 400);
-  if (id === currentUser.id) return c.json({ error: 'Cannot change your own role' }, 400);
-
-  const beforeRows = await db.select().from(users).where(eq(users.id, id)).limit(1);
-  const before = beforeRows[0];
-  if (!before) return c.json({ error: 'User not found' }, 404);
-
-  const updated = await db.update(users).set({ role }).where(eq(users.id, id)).returning();
-
-  const { ipAddress, userAgent } = extractClientInfo(c);
-  await createAuditLog({
-    userId: currentUser.id,
-    username: currentUser.username,
-    action: 'ROLE_CHANGE',
-    targetType: 'USER',
-    targetId: id,
-    beforeValue: before,
-    afterValue: updated[0],
-    description: `Changed ${before.name} role from ${before.role} to ${role}`,
-    ipAddress, userAgent,
-  });
-
-  return c.json({ success: true, data: updated[0] });
 });
 
 app.patch('/api/admin/users/:id/reset-password', async (c) => {
-  const currentUser = await getUserFromToken(c.req.header('authorization'));
-  if (!hasFullAccess(currentUser)) {
-    return c.json({ error: 'Unauthorized: Admin, Ketua, or Wakil privileges required.' }, 403);
+  try {
+    const currentUser = await getUserFromToken(c.req.header('authorization'));
+    if (!hasFullAccess(currentUser)) {
+      return c.json({ error: 'Unauthorized: Admin, Ketua, or Wakil privileges required.' }, 403);
+    }
+    const id = Number(c.req.param('id'));
+    if (!id) return c.json({ error: 'invalid id' }, 400);
+
+    const beforeRows = await db.select().from(users).where(eq(users.id, id)).limit(1);
+    if (!beforeRows[0]) return c.json({ error: 'User not found' }, 404);
+
+    // Accept dynamic password from request body, fallback to default
+    const body = await c.req.json().catch(() => ({}));
+    const newPassword = body.password || 'Dubes2026!';
+    await db.update(users).set({ password: hashPassword(newPassword) }).where(eq(users.id, id));
+
+    const { ipAddress, userAgent } = extractClientInfo(c);
+    await createAuditLog({
+      userId: currentUser.id,
+      username: currentUser.username,
+      action: 'RESET_PASSWORD',
+      targetType: 'USER',
+      targetId: id,
+      description: `Reset password for ${beforeRows[0].name}`,
+      ipAddress, userAgent,
+    });
+
+    return c.json({ success: true, temporaryPassword: newPassword });
+  } catch (err) {
+    console.error('Error in PATCH /api/admin/users/:id/reset-password:', err);
+    return c.json({ error: err.message || 'Failed to reset password' }, 500);
   }
-  const id = Number(c.req.param('id'));
-  if (!id) return c.json({ error: 'invalid id' }, 400);
-
-  const beforeRows = await db.select().from(users).where(eq(users.id, id)).limit(1);
-  if (!beforeRows[0]) return c.json({ error: 'User not found' }, 404);
-
-  // Accept dynamic password from request body, fallback to default
-  const body = await c.req.json().catch(() => ({}));
-  const newPassword = body.password || 'Dubes2026!';
-  await db.update(users).set({ password: hashPassword(newPassword) }).where(eq(users.id, id));
-
-  const { ipAddress, userAgent } = extractClientInfo(c);
-  await createAuditLog({
-    userId: currentUser.id,
-    username: currentUser.username,
-    action: 'RESET_PASSWORD',
-    targetType: 'USER',
-    targetId: id,
-    description: `Reset password for ${beforeRows[0].name}`,
-    ipAddress, userAgent,
-  });
-
-  return c.json({ success: true, temporaryPassword: newPassword });
 });
 
 app.patch('/api/admin/users/:id/status', async (c) => {
-  const currentUser = await getUserFromToken(c.req.header('authorization'));
-  if (!hasFullAccess(currentUser)) {
-    return c.json({ error: 'Unauthorized: Admin, Ketua, or Wakil privileges required.' }, 403);
+  try {
+    const currentUser = await getUserFromToken(c.req.header('authorization'));
+    if (!hasFullAccess(currentUser)) {
+      return c.json({ error: 'Unauthorized: Admin, Ketua, or Wakil privileges required.' }, 403);
+    }
+    const id = Number(c.req.param('id'));
+    const body = await c.req.json();
+    const { status } = body;
+    if (!id || !['active', 'alumni'].includes(status)) return c.json({ error: 'valid id and status required' }, 400);
+    if (id === currentUser.id) return c.json({ error: 'Cannot change your own status' }, 400);
+
+    const beforeRows = await db.select().from(users).where(eq(users.id, id)).limit(1);
+    if (!beforeRows[0]) return c.json({ error: 'User not found' }, 404);
+
+    // Protect main master admin account from deactivation
+    if (status === 'alumni' && isMasterAdmin(beforeRows[0])) {
+      return c.json({ error: 'Proteksi Sistem: Akun Admin utama tidak dapat dinonaktifkan.' }, 400);
+    }
+
+    const updated = await db.update(users).set({ status }).where(eq(users.id, id)).returning();
+
+    const { ipAddress, userAgent } = extractClientInfo(c);
+    await createAuditLog({
+      userId: currentUser.id,
+      username: currentUser.username,
+      action: 'EDIT_MEMBER',
+      targetType: 'USER',
+      targetId: id,
+      beforeValue: beforeRows[0],
+      afterValue: updated[0],
+      description: `${status === 'alumni' ? 'Deactivated' : 'Reactivated'} user: ${beforeRows[0].name}`,
+      ipAddress, userAgent,
+    });
+
+    return c.json({ success: true, data: updated[0] });
+  } catch (err) {
+    console.error('Error in PATCH /api/admin/users/:id/status:', err);
+    return c.json({ error: err.message || 'Failed to update status' }, 500);
   }
-  const id = Number(c.req.param('id'));
-  const body = await c.req.json();
-  const { status } = body;
-  if (!id || !['active', 'alumni'].includes(status)) return c.json({ error: 'valid id and status required' }, 400);
-  if (id === currentUser.id) return c.json({ error: 'Cannot change your own status' }, 400);
-
-  const beforeRows = await db.select().from(users).where(eq(users.id, id)).limit(1);
-  if (!beforeRows[0]) return c.json({ error: 'User not found' }, 404);
-
-  // Protect main master admin account from deactivation
-  if (status === 'alumni' && isMasterAdmin(beforeRows[0])) {
-    return c.json({ error: 'Proteksi Sistem: Akun Admin utama tidak dapat dinonaktifkan.' }, 400);
-  }
-
-  const updated = await db.update(users).set({ status }).where(eq(users.id, id)).returning();
-
-  const { ipAddress, userAgent } = extractClientInfo(c);
-  await createAuditLog({
-    userId: currentUser.id,
-    username: currentUser.username,
-    action: 'EDIT_MEMBER',
-    targetType: 'USER',
-    targetId: id,
-    beforeValue: beforeRows[0],
-    afterValue: updated[0],
-    description: `${status === 'alumni' ? 'Deactivated' : 'Reactivated'} user: ${beforeRows[0].name}`,
-    ipAddress, userAgent,
-  });
-
-  return c.json({ success: true, data: updated[0] });
 });
 
 // ─── Vercel Blob Upload API ──────────────────────────────────────────────
@@ -1526,45 +1624,50 @@ app.get('/api/config', async (c) => {
 });
 
 app.patch('/api/config', async (c) => {
-  const body = await c.req.json();
-  const user = await getUserFromToken(c.req.header('authorization'));
-  // All authenticated users (admin, ketua, wakil, sekretaris, bendahara) can save cash config
-  if (!hasCashConfigAccess(user)) {
-    return c.json({ error: 'Unauthorized: hanya pengurus aktif yang dapat mengubah konfigurasi kas.' }, 403);
-  }
-
-  if (body.weeklyFee !== undefined) {
-    const weeklyFee = Number(body.weeklyFee);
-    if (!Number.isFinite(weeklyFee) || weeklyFee < 0) {
-      return c.json({ error: 'Nominal kas mingguan tidak valid.' }, 400);
+  try {
+    const body = await c.req.json();
+    const user = await getUserFromToken(c.req.header('authorization'));
+    // All authenticated users (admin, ketua, wakil, sekretaris, bendahara) can save cash config
+    if (!hasCashConfigAccess(user)) {
+      return c.json({ error: 'Unauthorized: hanya pengurus aktif yang dapat mengubah konfigurasi kas.' }, 403);
     }
-  }
 
-  const results = {};
-  for (const [key, value] of Object.entries(body)) {
-    const existing = await db.select().from(config).where(eq(config.key, key)).limit(1);
-    if (existing.length > 0) {
-      const updated = await db.update(config).set({ value: String(value), updatedAt: new Date() }).where(eq(config.key, key)).returning();
-      results[key] = updated[0];
-    } else {
-      const inserted = await db.insert(config).values({ key, value: String(value) }).returning();
-      results[key] = inserted[0];
+    if (body.weeklyFee !== undefined) {
+      const weeklyFee = Number(body.weeklyFee);
+      if (!Number.isFinite(weeklyFee) || weeklyFee < 0) {
+        return c.json({ error: 'Nominal kas mingguan tidak valid.' }, 400);
+      }
     }
+
+    const results = {};
+    for (const [key, value] of Object.entries(body)) {
+      const existing = await db.select().from(config).where(eq(config.key, key)).limit(1);
+      if (existing.length > 0) {
+        const updated = await db.update(config).set({ value: String(value), updatedAt: new Date() }).where(eq(config.key, key)).returning();
+        results[key] = updated[0];
+      } else {
+        const inserted = await db.insert(config).values({ key, value: String(value) }).returning();
+        results[key] = inserted[0];
+      }
+    }
+
+    const { ipAddress, userAgent } = extractClientInfo(c);
+    await createAuditLog({
+      userId: user?.id || null,
+      username: user?.username || 'system',
+      action: 'SETTINGS_CHANGE',
+      targetType: 'CONFIG',
+      afterValue: results,
+      description: `Updated config: ${Object.keys(body).join(', ')}`,
+      ipAddress,
+      userAgent,
+    });
+
+    return c.json({ success: true, data: results });
+  } catch (err) {
+    console.error('Error in PATCH /api/config:', err);
+    return c.json({ error: err.message || 'Failed to update config' }, 500);
   }
-
-  const { ipAddress, userAgent } = extractClientInfo(c);
-  await createAuditLog({
-    userId: user?.id || null,
-    username: user?.username || 'system',
-    action: 'SETTINGS_CHANGE',
-    targetType: 'CONFIG',
-    afterValue: results,
-    description: `Updated config: ${Object.keys(body).join(', ')}`,
-    ipAddress,
-    userAgent,
-  });
-
-  return c.json({ success: true, data: results });
 });
 
 // ─── Categories API ────────────────────────────────────────────────────────

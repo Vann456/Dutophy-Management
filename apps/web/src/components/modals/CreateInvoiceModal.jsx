@@ -73,6 +73,12 @@ const CreateInvoiceModal = ({ isOpen, onClose, onCreated }) => {
       return;
     }
 
+    const parsedNominal = Number(nominal);
+    if (!Number.isFinite(parsedNominal) || parsedNominal <= 0) {
+      alert('Nominal tagihan harus berupa angka positif lebih dari 0.');
+      return;
+    }
+
     // Generate pesan WA
     const msg = generateWAMessage({
       memberName:   selectedMember.nama,

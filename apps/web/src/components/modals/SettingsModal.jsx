@@ -36,9 +36,6 @@ const getRoleBadgeStyle = (role) => {
 };
 
 const SettingsModal = ({ isOpen, onClose, initialTab = 'kas', user }) => {
-  // Debug: log full user object to inspect structure
-  console.log('SettingsModal - user:', user, 'isOpen:', isOpen);
-  
   // Try multiple possible locations for username/role
   const currentUsername = user?.username || user?.user?.username || '';
   // Role check: case-insensitive exact match
@@ -46,8 +43,6 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'kas', user }) => {
   
   // Super Tier: master admin (username='dutophy@gmail.com') OR authorized roles (ketua/wakil)
   const isSuperTier = currentUsername === 'dutophy@gmail.com' || currentUserRole === 'ketua' || currentUserRole === 'wakil';
-  
-  console.log('SettingsModal - currentUsername:', currentUsername, 'currentUserRole:', currentUserRole, 'isSuperTier:', isSuperTier);
   
   // Can access Audit Log and Manajemen Pengurus tabs only for Super Tier
   const canAccessAuditLog = isSuperTier === true;

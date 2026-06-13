@@ -32,6 +32,16 @@ const CreateExpenseModal = ({ isOpen, onClose, onCreated }) => {
   const handleSave = async (e) => {
     e.preventDefault();
     if (!form.title || !form.amount || !form.category) return alert('Isi semua field wajib');
+
+    const parsedAmount = Number(form.amount);
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+      alert('Nominal pengeluaran harus berupa angka positif lebih dari 0.');
+      return;
+    }
+    if (form.title.trim().length === 0) {
+      alert('Nama pengeluaran tidak boleh kosong.');
+      return;
+    }
     try {
       setLoading(true);
       await createTransaction({

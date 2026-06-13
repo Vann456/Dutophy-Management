@@ -3,7 +3,7 @@ import { pgTable, serial, text, integer, timestamp } from 'drizzle-orm/pg-core';
 export const users = pgTable('users', {
   id: serial('id').primaryKey(),
   username: text('username').notNull(),
-  password: text('password').notNull(),
+  password: text('password'), // nullable — Google OAuth users have no password
   role: text('role').notNull().default('Anggota'),
   name: text('name').notNull(),
   email: text('email'),

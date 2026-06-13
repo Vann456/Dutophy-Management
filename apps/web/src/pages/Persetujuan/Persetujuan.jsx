@@ -4,7 +4,7 @@ import { fetchTransactions, updateTransaction } from '../../api'
 export default function Persetujuan({ user }) {
   const currentUsername = user?.username;
   const currentUserRole = (user?.role || '').toLowerCase().trim();
-  const canApproveReject = currentUsername === 'admin' || currentUserRole === 'ketua' || currentUserRole === 'wakil';
+  const canApproveReject = currentUsername === 'dutophy@gmail.com' || currentUserRole === 'ketua' || currentUserRole === 'wakil';
   const [transactions, setTransactions] = useState([])
   const [loading, setLoading] = useState(false)
   const [rejectModalOpen, setRejectModalOpen] = useState(false)

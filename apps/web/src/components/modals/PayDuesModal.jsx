@@ -57,7 +57,7 @@ const PayDuesModal = ({ isOpen, onClose, onPaid }) => {
 
   const selectedMember  = members.find(m => String(m.id) === String(selectedMemberId)) ?? null;
   const totalAmount     = weeksCount * weeklyFee;
-  const isFormValid     = selectedMember && weeklyFee > 0;
+  const isFormValid     = selectedMember && weeklyFee > 0 && totalAmount > 0;
 
   // Preview 4 kotak status kas setelah submit
   const currentWeeks = selectedMember
@@ -67,6 +67,8 @@ const PayDuesModal = ({ isOpen, onClose, onPaid }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!selectedMember) return alert('Pilih anggota terlebih dahulu');
+    if (weeklyFee <= 0) return alert('Nominal iuran harus lebih dari 0. Atur di menu Pengaturan > Konfigurasi Kas.');
+    if (weeksCount < 1 || weeksCount > 4) return alert('Jumlah minggu harus antara 1 dan 4.');
 
     try {
       setLoading(true);

@@ -36,6 +36,7 @@ export default function Riwayat() {
 
   const [transactions, setTransactions] = useState([])
   const [refreshKey, setRefreshKey] = useState(0)
+  const [loadError, setLoadError] = useState(null)
   const [editModalOpen, setEditModalOpen] = useState(false)
   const [selectedTransaction, setSelectedTransaction] = useState(null)
   const [editForm, setEditForm] = useState({ description: '', amount: '', category: '' })
@@ -60,10 +61,12 @@ export default function Riwayat() {
 
   const loadTransactions = async () => {
     try {
+      setLoadError(null);
       const data = await fetchTransactions()
       setTransactions(data || [])
     } catch (err) {
       console.error('Gagal memuat transaksi', err)
+      setLoadError('Gagal memuat riwayat transaksi. Silakan coba refresh halaman.')
     }
   }
 
@@ -151,7 +154,16 @@ export default function Riwayat() {
   }
 
   const handleEditSubmit = async () => {
-    if (!selectedTransaction) return
+    if (!selectedTransaction) return;
+    const parsedAmount = Number(editForm.amount);
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+      alert('Nominal harus berupa angka positif lebih dari 0.');
+      return;
+    }
+    if (!editForm.description || editForm.description.trim().length === 0) {
+      alert('Deskripsi tidak boleh kosong.');
+      return;
+    }
     try {
       await updateTransaction(selectedTransaction.id, {
         description: editForm.description,
@@ -192,6 +204,11 @@ export default function Riwayat() {
 
   return (
     <>
+      {loadError && (
+        <div className="bg-error-container border border-error rounded-lg p-md text-error font-body-md">
+          {loadError}
+        </div>
+      )}
       <section className="bg-surface-container-lowest rounded-xl border border-outline-variant p-xs overflow-x-auto shadow-sm no-print">
         <ul className="flex gap-xs flex-wrap">
           {months.map((month) => {
@@ -391,6 +408,7 @@ export default function Riwayat() {
                 <label className="font-label-md text-label-md text-on-surface-variant block mb-2">Nominal</label>
                 <input
                   type="number"
+                  min="1"
                   value={editForm.amount}
                   onChange={(e) => setEditForm({ ...editForm, amount: e.target.value })}
                   className="w-full bg-surface border border-outline-variant rounded-lg p-3 text-on-surface focus:ring-2 focus:ring-primary focus:border-primary outline-none"

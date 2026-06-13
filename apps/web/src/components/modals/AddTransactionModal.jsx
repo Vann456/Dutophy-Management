@@ -45,14 +45,20 @@ const AddTransactionModal = (props) => {
       return;
     }
 
+    const parsedAmount = Number(formData.amount);
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+      setError('Jumlah transaksi harus berupa angka positif lebih dari 0.');
+      return;
+    }
+
+    if (formData.description && formData.description.length > 500) {
+      setError('Keterangan terlalu panjang (maksimal 500 karakter).');
+      return;
+    }
+
     try {
       setLoading(true);
       setError('');
-      console.log('📝 AddTransactionModal: Submitting transaction...', {
-        description: formData.description || formData.category,
-        amount: Number(formData.amount),
-        type: formData.type,
-      });
 
       await createTransaction({
         description: formData.description || formData.category,
@@ -61,8 +67,6 @@ const AddTransactionModal = (props) => {
         category: formData.category,
         createdAt: formData.date,
       });
-
-      console.log('✓ AddTransactionModal: Transaction created successfully');
 
       // Reset form
       setFormData({
@@ -75,7 +79,6 @@ const AddTransactionModal = (props) => {
 
       // Trigger refresh callback
       if (props.onTransactionCreated) {
-        console.log('🔄 AddTransactionModal: Calling onTransactionCreated callback');
         props.onTransactionCreated?.();
       }
 
