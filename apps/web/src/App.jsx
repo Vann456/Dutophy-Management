@@ -89,6 +89,18 @@ function App() {
       setUser(prev => ({ ...prev, avatarUrl: uploadData.url }));
       setAvatarCacheBuster(Date.now());
       
+      // Re-fetch full user session from backend to guarantee state consistency
+      // This covers edge cases where props may have been stale
+      try {
+        const freshUser = await fetchAuthMe();
+        if (freshUser?.user) {
+          setUser(freshUser.user);
+          setAvatarCacheBuster(Date.now());
+        }
+      } catch (fetchErr) {
+        console.warn('Avatar re-fetch warning (non-critical):', fetchErr);
+      }
+      
       // Notify other components
       window.dispatchEvent(new CustomEvent('avatar:updated', { detail: { avatarUrl: uploadData.url } }));
     } catch (err) {

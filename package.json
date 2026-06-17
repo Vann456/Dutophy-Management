@@ -25,6 +25,7 @@
     "@react-oauth/google": "^0.13.5",
     "google-auth-library": "^10.7.0",
     "jwt-decode": "^4.0.0",
-    "react-easy-crop": "^5.5.7"
+    "react-easy-crop": "^5.5.7",
+    "testsprite": "^0.1.0"
   }
 }

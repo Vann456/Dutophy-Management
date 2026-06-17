@@ -168,20 +168,22 @@ export default function Login({ onLogin, onRegister, onGoogleLogin, error }) {
                 <span className="font-label-sm text-label-sm text-on-surface-variant">atau</span>
                 <div className="flex-1 h-px bg-outline-variant"></div>
               </div>
-              <GoogleLogin
-                onSuccess={(credentialResponse) => {
-                  if (credentialResponse.credential) {
-                    onGoogleLogin(credentialResponse.credential);
-                  }
-                }}
-                onError={() => {
-                  setLocalError('Login Google gagal. Silakan coba lagi.');
-                }}
-                theme="outline"
-                size="large"
-                text="signin_with"
-                shape="rectangular"
-              />
+              <div className="flex justify-center w-full">
+                <GoogleLogin
+                  onSuccess={(credentialResponse) => {
+                    if (credentialResponse.credential) {
+                      onGoogleLogin(credentialResponse.credential);
+                    }
+                  }}
+                  onError={() => {
+                    setLocalError('Login Google gagal. Silakan coba lagi.');
+                  }}
+                  theme="outline"
+                  size="large"
+                  text="signin_with"
+                  shape="rectangular"
+                />
+              </div>
             </>
           )}
         </form>

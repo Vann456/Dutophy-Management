@@ -847,7 +847,7 @@ const SettingsModal = ({ isOpen, onClose, initialTab = 'kas', user }) => {
                 <td className="py-sm px-md">
                   <div className="flex items-center gap-sm">
                     <img
-                      src={u.avatarUrl || 'https://images.unsplash.com/photo-1527980965255-d3b416303d12?auto=format&fit=crop&w=256&q=80'}
+                      src={`${u.avatarUrl || 'https://images.unsplash.com/photo-1527980965255-d3b416303d12?auto=format&fit=crop&w=256&q=80'}?t=${Date.now()}`}
                       alt={u.name}
                       className="w-8 h-8 rounded-full object-cover bg-surface-container-high border border-outline-variant flex-shrink-0"
                     />
