@@ -124,25 +124,20 @@ export default function Login({ onLogin, onRegister, onGoogleLogin, error }) {
                 </span>
               </button>
             </div>
-            <div className="flex justify-between items-center mt-xs">
-              <button
-                type="button"
-                onClick={() => setShowForgotModal(true)}
-                className="font-label-sm text-label-sm text-primary hover:text-primary-fixed transition-colors duration-200 focus:outline-none focus:underline bg-transparent border-none p-0 cursor-pointer"
-              >
-                Lupa Password?
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setMode((current) => (current === 'login' ? 'register' : 'login'));
-                  setLocalError('');
-                }}
-                className="font-label-sm text-label-sm text-primary hover:text-primary-fixed transition-colors duration-200 focus:outline-none focus:underline"
-              >
-                {mode === 'login' ? 'Daftar akun baru' : 'Kembali ke login'}
-              </button>
-            </div>
+            {mode === 'login' && (
+              <div className="flex justify-end items-center mt-xs">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode((current) => (current === 'login' ? 'register' : 'login'));
+                    setLocalError('');
+                  }}
+                  className="font-label-sm text-label-sm text-primary hover:text-primary-fixed transition-colors duration-200 focus:outline-none focus:underline"
+                >
+                  Daftar akun baru
+                </button>
+              </div>
+            )}
           </div>
 
           {mode === 'register' && (
@@ -181,6 +176,21 @@ export default function Login({ onLogin, onRegister, onGoogleLogin, error }) {
             <span>{submitting ? 'Memproses...' : mode === 'login' ? 'Masuk' : 'Daftar'}</span>
             <span className="material-symbols-outlined transition-transform duration-300 group-hover:translate-x-1" style={{ fontSize: '18px' }}>arrow_forward</span>
           </button>
+
+          {mode === 'register' && (
+            <div className="flex justify-center items-center mt-sm">
+              <button
+                type="button"
+                onClick={() => {
+                  setMode((current) => (current === 'login' ? 'register' : 'login'));
+                  setLocalError('');
+                }}
+                className="font-label-sm text-label-sm text-primary hover:text-primary-fixed transition-colors duration-200 focus:outline-none focus:underline"
+              >
+                Kembali ke login
+              </button>
+            </div>
+          )}
 
           {mode === 'login' && onGoogleLogin && (
             <>
