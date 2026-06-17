@@ -30,7 +30,7 @@ export default function Login({ onLogin, onRegister, onGoogleLogin, error }) {
           return;
         }
         if (password !== confirmPassword) {
-          setLocalError('Konfirmasi password tidak cocok');
+          setLocalError('Password tidak cocok');
           return;
         }
         await onRegister({ username, password, name, email });
@@ -87,23 +87,6 @@ export default function Login({ onLogin, onRegister, onGoogleLogin, error }) {
           
           {mode === 'register' && (
             <div className="flex flex-col gap-xs">
-              <label className="font-label-md text-label-md text-on-surface ml-xs" htmlFor="email">Email</label>
-              <div className="relative">
-                <span className="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-on-surface-variant/70 pointer-events-none" style={{ fontSize: '20px' }}>mail</span>
-                <input
-                  id="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-surface border border-outline-variant rounded-lg pl-[40px] pr-sm py-sm font-body-md text-body-md text-on-surface placeholder:text-on-surface-variant/40 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all duration-200 shadow-inner"
-                  placeholder="Masukkan email"
-                  type="email"
-                />
-              </div>
-            </div>
-          )}
-
-          {mode === 'register' && (
-            <div className="flex flex-col gap-xs">
               <label className="font-label-md text-label-md text-on-surface ml-xs" htmlFor="name">Nama Lengkap</label>
               <div className="relative">
                 <span className="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-on-surface-variant/70 pointer-events-none" style={{ fontSize: '20px' }}>person</span>
@@ -115,32 +98,6 @@ export default function Login({ onLogin, onRegister, onGoogleLogin, error }) {
                   placeholder="Masukkan nama lengkap"
                   type="text"
                 />
-              </div>
-            </div>
-          )}
-
-          {mode === 'register' && (
-            <div className="flex flex-col gap-xs">
-              <label className="font-label-md text-label-md text-on-surface ml-xs" htmlFor="confirmPassword">Konfirmasi Password</label>
-              <div className="relative">
-                <span className="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-on-surface-variant/70 pointer-events-none" style={{ fontSize: '20px' }}>lock</span>
-                <input
-                  id="confirmPassword"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full bg-surface border border-outline-variant rounded-lg pl-[40px] pr-[40px] py-sm font-body-md text-body-md text-on-surface placeholder:text-on-surface-variant/40 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all duration-200 shadow-inner"
-                  placeholder="••••••••"
-                  type={showConfirmPassword ? 'text' : 'password'}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword((value) => !value)}
-                  className="absolute right-sm top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface transition-colors duration-200"
-                >
-                  <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
-                    {showConfirmPassword ? 'visibility_off' : 'visibility'}
-                  </span>
-                </button>
               </div>
             </div>
           )}
@@ -187,6 +144,32 @@ export default function Login({ onLogin, onRegister, onGoogleLogin, error }) {
               </button>
             </div>
           </div>
+
+          {mode === 'register' && (
+            <div className="flex flex-col gap-xs">
+              <label className="font-label-md text-label-md text-on-surface ml-xs" htmlFor="confirmPassword">Konfirmasi Password</label>
+              <div className="relative">
+                <span className="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-on-surface-variant/70 pointer-events-none" style={{ fontSize: '20px' }}>lock</span>
+                <input
+                  id="confirmPassword"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full bg-surface border border-outline-variant rounded-lg pl-[40px] pr-[40px] py-sm font-body-md text-body-md text-on-surface placeholder:text-on-surface-variant/40 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all duration-200 shadow-inner"
+                  placeholder="••••••••"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword((value) => !value)}
+                  className="absolute right-sm top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface transition-colors duration-200"
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
+                    {showConfirmPassword ? 'visibility_off' : 'visibility'}
+                  </span>
+                </button>
+              </div>
+            </div>
+          )}
 
           {(localError || error) && (
             <div className="rounded-lg border border-error-container bg-error-container/10 p-sm text-error font-body-sm">
