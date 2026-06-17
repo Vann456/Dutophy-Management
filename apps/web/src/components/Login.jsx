@@ -65,15 +65,15 @@ export default function Login({ onLogin, onRegister, onGoogleLogin, error }) {
         
         <form className="flex flex-col gap-md" onSubmit={handleSubmit}>
           <div className="flex flex-col gap-xs">
-            <label className="font-label-md text-label-md text-on-surface ml-xs" htmlFor="username">Email atau Username</label>
+            <label className="font-label-md text-label-md text-on-surface ml-xs" htmlFor="username">Email</label>
             <div className="relative">
-              <span className="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-on-surface-variant/70 pointer-events-none" style={{ fontSize: '20px' }}>person</span>
+              <span className="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-on-surface-variant/70 pointer-events-none" style={{ fontSize: '20px' }}>mail</span>
               <input
                 id="username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="w-full bg-surface border border-outline-variant rounded-lg pl-[40px] pr-sm py-sm font-body-md text-body-md text-on-surface placeholder:text-on-surface-variant/40 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all duration-200 shadow-inner"
-                placeholder="Masukkan email/username"
+                placeholder="Masukkan email"
                 type="text"
               />
             </div>

@@ -31,7 +31,7 @@ export async function apiFetch(endpoint, options = {}) {
   });
 
   if (response.status === 401) {
-    throw new Error('Unauthorized');
+    throw new Error('Email Atau Password Salah');
   }
 
   if (!response.ok) {
