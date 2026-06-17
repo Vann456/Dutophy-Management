@@ -6,7 +6,7 @@ export const users = pgTable('users', {
   password: text('password'), // nullable for Google-only OAuth users
   role: text('role').notNull().default('Anggota'), // 'ketua', 'wakil', 'bendahara', 'sekretaris', 'guest', 'Anggota', 'alumni', 'pending'
   name: text('name').notNull(),
-  email: text('email'),
+  email: text('email').unique(),
   avatarUrl: text('avatar_url'), // profile picture URL from Vercel Blob or Google profile
   googleId: text('google_id'), // Google's unique user ID (sub claim) for OAuth users
   authProvider: text('auth_provider').default('local'), // 'local' or 'google'

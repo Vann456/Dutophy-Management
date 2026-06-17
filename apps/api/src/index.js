@@ -310,15 +310,23 @@ app.post('/api/auth/register', async (c) => {
 
     console.log(`📝 Register attempt for user: ${username}`);
 
-    const existing = await db.select().from(users).where(eq(users.username, username)).limit(1);
-    if (existing.length > 0) {
+    const existingByUsername = await db.select().from(users).where(eq(users.username, username)).limit(1);
+    if (existingByUsername.length > 0) {
       return c.json({ error: 'Username sudah terdaftar' }, 409);
+    }
+
+    // Check if email already exists (prevents duplicate registration across Google/manual)
+    if (email) {
+      const existingByEmail = await db.select().from(users).where(eq(users.email, email)).limit(1);
+      if (existingByEmail.length > 0) {
+        return c.json({ error: 'Email sudah terdaftar. Silakan gunakan Login dengan Google atau masuk dengan email tersebut.' }, 409);
+      }
     }
 
     const newUser = {
       username,
       password: hashPassword(password),
-      role: 'Anggota',
+      role: 'pending', // Must be approved by admin before accessing dashboard
       name: name || username,
       email: email || '',
     };
