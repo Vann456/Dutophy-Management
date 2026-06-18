@@ -339,14 +339,34 @@ app.post('/api/auth/register', async (c) => {
       return c.json({ error: 'Email sudah terdaftar' }, 409);
     }
 
-    // Check if email already exists (prevents duplicate registration across Google/manual)
+    // Merge logic: If email already exists (Google auth user), add password to existing row
     if (email) {
       const existingByEmail = await db.select().from(users).where(eq(users.email, email)).limit(1);
       if (existingByEmail.length > 0) {
-        return c.json({ error: 'Email sudah terdaftar. Silakan gunakan Login dengan Google atau masuk dengan email tersebut.' }, 409);
+        const existingUser = existingByEmail[0];
+        console.log(`🔗 Merging manual password into existing Google account: ${email} (ID: ${existingUser.id})`);
+
+        // Update the existing user's password so they can also log in manually
+        await db.update(users).set({ password: hashPassword(password) }).where(eq(users.id, existingUser.id));
+
+        const token = createToken();
+        tokenStore.set(token, existingUser.username);
+
+        return c.json({
+          success: true,
+          token,
+          user: {
+            id: existingUser.id,
+            username: existingUser.username,
+            role: existingUser.role,
+            name: existingUser.name,
+            email: existingUser.email || '',
+          },
+        });
       }
     }
 
+    // No duplicate found — create a brand new user
     const newUser = {
       username,
       password: hashPassword(password),
