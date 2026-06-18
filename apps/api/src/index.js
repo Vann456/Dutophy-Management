@@ -474,6 +474,7 @@ app.post('/api/auth/google', async (c) => {
     }
 
     const { sub: googleId, email, name, picture } = payload;
+    const normalizedEmail = email ? email.toLowerCase().trim() : '';
 
     // 1. Check if a user already exists with this googleId
     console.log(`🔍 Checking for existing user with Google ID: ${googleId}`);
@@ -520,10 +521,10 @@ app.post('/api/auth/google', async (c) => {
     }
 
     // 2. Check if a user already exists with this email (account linking)
-    console.log(`🔍 Checking for existing user with email: ${email}`);
+    console.log(`🔍 Checking for existing user with email: ${normalizedEmail}`);
     let existingByEmail = [];
     try {
-      existingByEmail = await db.select().from(users).where(eq(users.email, email)).limit(1);
+      existingByEmail = await db.select().from(users).where(eq(users.email, normalizedEmail)).limit(1);
     } catch (dbErr) {
       console.error('❌ Database query error (email lookup):', dbErr);
       throw new Error(`Database error: ${dbErr.message}`);
@@ -534,7 +535,7 @@ app.post('/api/auth/google', async (c) => {
       const user = existingByEmail[0];
       console.log(`✅ Found existing user by email: ${user.username} (ID: ${user.id})`);
       
-      const updates = { googleId, authProvider: 'google' };
+      const updates = { googleId, authProvider: 'google', email: normalizedEmail };
       // Update avatar from Google profile if user doesn't have one yet
       if (!user.avatarUrl && picture) {
         updates.avatarUrl = picture;
@@ -577,8 +578,6 @@ app.post('/api/auth/google', async (c) => {
       });
     }
 
-    // 3. Create new Google-only user with 'pending' role
-    console.log(`📝 Creating new user for Google OAuth: ${email}`);
     const newUsername = email.split('@')[0];
     
     // Ensure username is unique by appending numbers if needed
@@ -598,6 +597,9 @@ app.post('/api/auth/google', async (c) => {
     
     console.log(`📝 Generated username: ${usernameCandidate}`);
 
+    // 3. Create new Google-only user with 'pending' role
+    console.log(`📝 Creating new user for Google OAuth: ${normalizedEmail}`);
+    
     let inserted = [];
     try {
       inserted = await db.insert(users).values({
@@ -605,7 +607,7 @@ app.post('/api/auth/google', async (c) => {
         password: null, // Google-only users have no password
         role: 'pending', // Must be approved by admin before accessing sensitive data
         name: name || email.split('@')[0],
-        email,
+        email: normalizedEmail,
         googleId,
         authProvider: 'google',
         avatarUrl: picture || null,
