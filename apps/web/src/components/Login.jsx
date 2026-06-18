@@ -63,6 +63,13 @@ export default function Login({ onLogin, onRegister, onGoogleLogin, error }) {
           setLocalError('Password tidak cocok');
           return;
         }
+        // Validate email format before proceeding
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(username)) {
+          setLocalError('Format email tidak valid!');
+          setSubmitting(false);
+          return;
+        }
         // Show passcode gate before API call
         setPendingRegistration({ username, password, name, email });
         setSubmitting(false);

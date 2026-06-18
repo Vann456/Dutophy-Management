@@ -320,11 +320,17 @@ app.post('/api/auth/login', async (c) => {
 app.post('/api/auth/register', async (c) => {
   try {
     const body = await c.req.json();
-    const { username, password, name, email } = body;
+    let { username, password, name, email } = body;
 
     if (!username || !password) {
       return c.json({ error: 'Username dan password wajib diisi' }, 400);
     }
+
+    // Normalize email: lowercase and trim to prevent duplicate bypasses
+    if (email) {
+      email = String(email).toLowerCase().trim();
+    }
+    username = String(username).toLowerCase().trim();
 
     console.log(`📝 Register attempt for user: ${username}`);
 
