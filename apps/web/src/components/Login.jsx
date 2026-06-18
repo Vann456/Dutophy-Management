@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { GoogleLogin } from '@react-oauth/google';
 
+const PASSCODE = 'Cinematographia12';
+
 export default function Login({ onLogin, onRegister, onGoogleLogin, error }) {
   const [mode, setMode] = useState('login');
   const [username, setUsername] = useState('');
@@ -13,6 +15,34 @@ export default function Login({ onLogin, onRegister, onGoogleLogin, error }) {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [localError, setLocalError] = useState('');
   const [showForgotModal, setShowForgotModal] = useState(false);
+  const [showPasscode, setShowPasscode] = useState(false);
+  const [passcodeInput, setPasscodeInput] = useState('');
+  const [pendingRegistration, setPendingRegistration] = useState(null);
+  const [pendingGoogleCredential, setPendingGoogleCredential] = useState(null);
+
+  const handlePasscodeSubmit = async () => {
+    setLocalError('');
+    if (passcodeInput !== PASSCODE) {
+      setLocalError('Kode Akses Salah! Hubungi pengurus ekskul.');
+      return;
+    }
+    try {
+      setSubmitting(true);
+      if (pendingRegistration) {
+        await onRegister(pendingRegistration);
+      } else if (pendingGoogleCredential) {
+        await onGoogleLogin(pendingGoogleCredential);
+      }
+    } catch (err) {
+      setLocalError(err.message || 'Gagal');
+    } finally {
+      setSubmitting(false);
+      setShowPasscode(false);
+      setPasscodeInput('');
+      setPendingRegistration(null);
+      setPendingGoogleCredential(null);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -33,7 +63,12 @@ export default function Login({ onLogin, onRegister, onGoogleLogin, error }) {
           setLocalError('Password tidak cocok');
           return;
         }
-        await onRegister({ username, password, name, email });
+        // Show passcode gate before API call
+        setPendingRegistration({ username, password, name, email });
+        setSubmitting(false);
+        setShowPasscode(true);
+        setPasscodeInput('');
+        setLocalError('');
       } else {
         await onLogin({ username, password });
       }
@@ -41,6 +76,16 @@ export default function Login({ onLogin, onRegister, onGoogleLogin, error }) {
       setLocalError(err.message || 'Login gagal');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  // Intercept Google OAuth success — passcode gate before creating account
+  const handleGoogleSuccess = (credentialResponse) => {
+    if (credentialResponse.credential) {
+      setPendingGoogleCredential(credentialResponse.credential);
+      setShowPasscode(true);
+      setPasscodeInput('');
+      setLocalError('');
     }
   };
 
@@ -200,20 +245,16 @@ export default function Login({ onLogin, onRegister, onGoogleLogin, error }) {
                 <div className="flex-1 h-px bg-outline-variant"></div>
               </div>
               <div className="flex justify-center w-full">
-                <GoogleLogin
-                  onSuccess={(credentialResponse) => {
-                    if (credentialResponse.credential) {
-                      onGoogleLogin(credentialResponse.credential);
-                    }
-                  }}
-                  onError={() => {
-                    setLocalError('Login Google gagal. Silakan coba lagi.');
-                  }}
-                  theme="outline"
-                  size="large"
-                  text="signin_with"
-                  shape="rectangular"
-                />
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={() => {
+                  setLocalError('Login Google gagal. Silakan coba lagi.');
+                }}
+                theme="outline"
+                size="large"
+                text="signin_with"
+                shape="rectangular"
+              />
               </div>
             </>
           )}
@@ -228,6 +269,60 @@ export default function Login({ onLogin, onRegister, onGoogleLogin, error }) {
           </div>
         </footer>
       </main>
+
+      {/* ─── Passcode Gate Modal ──────────────────────────── */}
+      {showPasscode && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={() => { setShowPasscode(false); setPendingRegistration(null); setPendingGoogleCredential(null); }}>
+          <div 
+            className="w-full max-w-md bg-surface-container rounded-xl border border-outline-variant overflow-hidden shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-md border-b border-outline-variant flex items-center justify-between">
+              <h3 className="font-headline-md text-headline-md text-on-surface">Verifikasi Kode Akses</h3>
+              <button 
+                type="button" 
+                onClick={() => { setShowPasscode(false); setPendingRegistration(null); setPendingGoogleCredential(null); }} 
+                className="p-2 rounded-full text-on-surface-variant hover:text-on-surface transition-colors"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            <div className="p-md space-y-md">
+              <div className="flex flex-col items-center text-center gap-md py-lg">
+                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                  <span className="material-symbols-outlined text-primary text-3xl">lock</span>
+                </div>
+                <div>
+                  <p className="font-body-md text-body-md text-on-surface mb-sm font-semibold">
+                    Masukkan Kode Akses Ekskul Dutophy
+                  </p>
+                  <p className="font-body-md text-body-md text-on-surface-variant">
+                    Untuk mendaftar, masukkan kode akses yang diberikan oleh pengurus ekskul.
+                  </p>
+                </div>
+              </div>
+              <input
+                value={passcodeInput}
+                onChange={(e) => setPasscodeInput(e.target.value)}
+                className="w-full bg-surface border border-outline-variant rounded-lg px-sm py-sm font-body-md text-body-md text-on-surface placeholder:text-on-surface-variant/40 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all duration-200 shadow-inner text-center text-xl tracking-[0.5em]"
+                placeholder="•••••••••••••••"
+                type="password"
+                autoFocus
+              />
+            </div>
+            <div className="p-md border-t border-outline-variant flex flex-col gap-sm bg-surface-container-lowest">
+              <button
+                type="button"
+                onClick={handlePasscodeSubmit}
+                disabled={submitting || !passcodeInput}
+                className="w-full px-md py-sm rounded-lg bg-primary text-on-primary font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+              >
+                {submitting ? 'Memproses...' : 'Verifikasi'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ─── Lupa Password Modal ─────────────────────────────── */}
       {showForgotModal && (

@@ -52,6 +52,13 @@ export async function apiFetch(endpoint, options = {}) {
   return response.json();
 }
 
+export async function checkEmail(email) {
+  return apiFetch('/api/auth/check-email', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
+}
+
 export async function login({ username, password }) {
   return apiFetch('/api/auth/login', {
     method: 'POST',

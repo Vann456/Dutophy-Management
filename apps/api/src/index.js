@@ -187,6 +187,24 @@ app.get('/health', async (c) => {
   return c.json(health, health.ok ? 200 : 503);
 });
 
+// ─── Check if email already exists (for passcode gating) ─────────────────────
+app.post('/api/auth/check-email', async (c) => {
+  try {
+    const body = await c.req.json();
+    const { email } = body;
+
+    if (!email) {
+      return c.json({ error: 'Email wajib diisi' }, 400);
+    }
+
+    const rows = await db.select().from(users).where(eq(users.email, email)).limit(1);
+    return c.json({ exists: rows.length > 0 });
+  } catch (err) {
+    console.error('❌ Check-email endpoint error:', err);
+    return c.json({ error: err.message || 'Internal server error' }, 500);
+  }
+});
+
 app.post('/api/auth/login', async (c) => {
   try {
     const body = await c.req.json();
@@ -312,7 +330,7 @@ app.post('/api/auth/register', async (c) => {
 
     const existingByUsername = await db.select().from(users).where(eq(users.username, username)).limit(1);
     if (existingByUsername.length > 0) {
-      return c.json({ error: 'Username sudah terdaftar' }, 409);
+      return c.json({ error: 'Email sudah terdaftar' }, 409);
     }
 
     // Check if email already exists (prevents duplicate registration across Google/manual)
