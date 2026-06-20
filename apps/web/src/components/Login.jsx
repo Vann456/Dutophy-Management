@@ -71,7 +71,8 @@ export default function Login({ onLogin, onRegister, onGoogleLogin, error }) {
           return;
         }
         // Show passcode gate before API call
-        setPendingRegistration({ username, password, name, email });
+        // IMPORTANT: username state holds the email value, pass it as email too
+        setPendingRegistration({ username, password, name, email: username });
         setSubmitting(false);
         setShowPasscode(true);
         setPasscodeInput('');
